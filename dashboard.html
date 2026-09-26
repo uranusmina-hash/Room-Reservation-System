@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Room Reservation System</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="container">
+<!-- HEADER -->
+<div class="header">
+<a href="index.html" style="display:flex; align-items:center; gap:8px; text-decoration:none;">
+<span style="font-size:20px;">📚</span>
+<div>
+<h1 style="margin:0;">Room Reservation</h1>
+<small>School Management System</small>
+</div>
+</a>
+<div id="userBar"></div>
+</div>
+<div id="alertBox"></div>
+<!-- DASHBOARD NAV -->
+<nav class="dash-nav" id="dashNav">
+<button class="dash-nav-btn active" data-panel="overview" onclick="switchPanel('overview')">
+            🏠 Overview
+        </button>
+<button class="dash-nav-btn" data-panel="rooms" onclick="switchPanel('rooms')">
+            🏫 Rooms
+        </button>
+<button class="dash-nav-btn" data-panel="reserve" onclick="switchPanel('reserve')">
+            📝 Reserve
+        </button>
+<button class="dash-nav-btn" data-panel="reservations" onclick="switchPanel('reservations')">
+            📅 My Reservations
+        </button>
+<button class="dash-nav-btn" data-panel="profile" onclick="switchPanel('profile')">
+            👤 Profile
+        </button>
+<button class="dash-nav-btn admin-only" data-panel="manage-rooms" onclick="switchPanel('manage-rooms')" style="display:none;">
+            🏢 Manage Rooms
+        </button>
+<button class="dash-nav-btn admin-only" data-panel="manage-users" onclick="switchPanel('manage-users')" style="display:none;">
+            👥 Manage Users
+        </button>
+</nav>
+<div class="dash-panels">
+<!-- OVERVIEW -->
+<section class="panel active" id="panel-overview">
+<div class="bento">
+<div class="box tile-stats">
+<span class="stat-value" id="statRooms">0</span>
+<span class="stat-label">Total Rooms</span>
+</div>
+<div class="box tile-stats">
+<span class="stat-value" id="statAvailable">0</span>
+<span class="stat-label">Open Slots Today</span>
+</div>
+<div class="box tile-stats">
+<span class="stat-value" id="statPending">0</span>
+<span class="stat-label">Pending Reservations</span>
+</div>
+<div class="box tile-stats">
+<span class="stat-value" id="statApproved">0</span>
+<span class="stat-label">Approved Reservations</span>
+</div>
+</div>
+<div class="box">
+<h2>👋 Welcome</h2>
+<p class="note" style="margin-bottom:0;">
+                    Use the tabs above to browse rooms, make a reservation,
+                    check your booking history, or update your profile.
+                </p>
+</div>
+</section>
+<!-- ROOMS -->
+<section class="panel" id="panel-rooms">
+<div class="box">
+<h2>🏫 Rooms</h2>
+<p class="note">
+                    Select a date to see room availability. Rooms are booked in
+                    four fixed time blocks: 8:00–9:30 AM, 10:00–11:30 AM,
+                    1:00–2:30 PM, and 3:00–5:00 PM.
+                </p>
+<label>Check Availability Date</label>
+<input id="availabilityDate" type="date"/>
+<div class="list-controls">
+<select id="roomFilter">
+<option value="all">All Rooms</option>
+<option value="available">Available Only</option>
+</select>
+<select id="roomSort">
+<option value="name">Sort: Name (A–Z)</option>
+<option value="capacity-desc">Sort: Capacity (High–Low)</option>
+<option value="capacity-asc">Sort: Capacity (Low–High)</option>
+</select>
+</div>
+<div class="room-grid" id="roomGrid"></div>
+<div id="roomPagination"></div>
+</div>
+</section>
+<!-- RESERVE -->
+<section class="panel" id="panel-reserve">
+<div class="box">
+<h2>📝 Reserve a Room</h2>
+<form id="bookingForm">
+<label>Room</label>
+<select id="room" required=""></select>
+<label>Date</label>
+<input id="date" required="" type="date"/>
+<label>Time Slot</label>
+<div class="slot-picker" id="slotPicker">
+<p class="note">
+                            Choose a room and date to see available time slots.
+                        </p>
+</div>
+<label>Purpose</label>
+<input id="purpose" placeholder="Example: Math Class" required="" type="text"/>
+<button class="btn success" type="submit">
+                        📅 Request Reservation
+                    </button>
+</form>
+</div>
+</section>
+<!-- MY RESERVATIONS -->
+<section class="panel" id="panel-reservations">
+<div class="box">
+<h2>📅 Reservations</h2>
+<p class="note">
+                    Pending reservations already occupy the
+                    selected time until they are cancelled or rejected.
+                </p>
+<div class="list-controls">
+<select id="statusFilter">
+<option value="all">All Statuses</option>
+<option value="pending">Pending</option>
+<option value="approved">Approved</option>
+<option value="rejected">Rejected</option>
+<option value="cancelled">Cancelled</option>
+</select>
+<select id="sortOrder">
+<option value="newest">Sort: Newest First</option>
+<option value="oldest">Sort: Oldest First</option>
+</select>
+</div>
+<div id="bookingList"></div>
+<div id="bookingPagination"></div>
+</div>
+</section>
+<!-- PROFILE -->
+<section class="panel" id="panel-profile">
+<div class="box profile-box">
+<h2>👤 My Profile</h2>
+<div class="profile-photo-row">
+<div class="profile-avatar-frame" id="profileAvatarFrame">
+<span id="profileAvatarInitials">?</span>
+<img alt="Profile photo" id="profileAvatarImg" style="display:none;"/>
+</div>
+<div>
+<label class="btn photo-upload-label" for="profilePhotoInput">
+                            📁 Upload New Photo
+                        </label>
+<input accept="image/*" id="profilePhotoInput" style="display:none;" type="file"/>
+<p class="note" style="margin:8px 0 0;">
+                            This photo is also shown to admins for
+                            account verification.
+                        </p>
+</div>
+</div>
+<div class="profile-info">
+<div class="profile-info-row">
+<span class="profile-info-label">Full Name</span>
+<span id="profileName">—</span>
+</div>
+<div class="profile-info-row">
+<span class="profile-info-label">Email</span>
+<span id="profileEmail">—</span>
+</div>
+<div class="profile-info-row">
+<span class="profile-info-label">Role</span>
+<span id="profileRole">—</span>
+</div>
+</div>
+<button class="btn" onclick="openPasswordModal()" type="button">
+                    🔑 Change Password
+                </button>
+</div>
+</section>
+<!-- ADMIN: MANAGE ROOMS -->
+<section class="panel" id="panel-manage-rooms">
+<div class="box" id="adminBox">
+<h2 id="roomFormTitle">🏢 Add Room</h2>
+<form id="roomForm">
+<input id="roomName" placeholder="Room name" required="" type="text"/>
+<input id="capacity" placeholder="Capacity" required="" type="number"/>
+<input id="roomLocation" placeholder="Location (e.g. 2nd Floor, Main Building)" type="text"/>
+<select id="projector">
+<option value="true">
+                            Projector: Yes
+                        </option>
+<option value="false">
+                            Projector: No
+                        </option>
+</select>
+<button class="btn success" id="roomSubmitBtn" type="submit">
+                        Add Room
+                    </button>
+<button class="btn" id="cancelEditBtn" onclick="cancelRoomEdit()" style="display:none;" type="button">
+                        Cancel Edit
+                    </button>
+</form>
+</div>
+</section>
+<!-- ADMIN: MANAGE USERS -->
+<section class="panel" id="panel-manage-users">
+<div class="box" id="resetRequestsBox" style="display:none;">
+<h2>🔑 Password Reset Requests</h2>
+<div id="resetRequestList"></div>
+</div>
+<div class="box" id="usersBox">
+<h2>👥 Manage Users</h2>
+<p class="note">
+                    Total registered accounts:
+                    <strong id="statUsers">0</strong>
+                    ·
+                    Pending approval:
+                    <strong id="statPendingUsers">0</strong>
+                    ·
+                    Flagged for review:
+                    <strong id="statFlagged">0</strong>
+</p>
+<div class="list-controls">
+<label class="checkbox-label">
+<input id="flaggedOnlyFilter" onchange="toggleFlaggedOnly()" type="checkbox"/>
+                    Show flagged accounts only
+                </label>
+<select id="userStatusFilter" onchange="filterUsersByStatus()">
+<option value="all">All accounts</option>
+<option value="pending">Pending approval</option>
+<option value="approved">Approved</option>
+<option value="rejected">Rejected</option>
+<option value="blocked">Blocked</option>
+</select>
+</div>
+<div id="userList"></div>
+<div id="userPagination"></div>
+</div>
+</section>
+</div>
+</div>
+<!-- ROOM DETAILS MODAL -->
+<div class="modal-overlay" id="roomModal" onclick="if(event.target===this) closeRoomModal()">
+<div class="modal-card">
+<button class="modal-close" onclick="closeRoomModal()" type="button">
+            ✕
+        </button>
+<div id="roomModalBody"></div>
+</div>
+</div>
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="passwordModal" onclick="if(event.target===this) closePasswordModal()">
+<div class="modal-card">
+<button class="modal-close" onclick="closePasswordModal()" type="button">
+            ✕
+        </button>
+<h2>🔑 Change Password</h2>
+<form id="passwordForm">
+<label>Current Password</label>
+<div class="password-field">
+<input id="currentPassword" required="" type="password"/>
+<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'currentPassword')" type="button">👁️</button>
+</div>
+<label>New Password</label>
+<div class="password-field">
+<input id="newPassword" required="" type="password"/>
+<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'newPassword')" type="button">👁️</button>
+</div>
+<label>Confirm New Password</label>
+<div class="password-field">
+<input id="confirmPassword" required="" type="password"/>
+<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'confirmPassword')" type="button">👁️</button>
+</div>
+<button class="btn success" type="submit">
+                Update Password
+            </button>
+</form>
+</div>
+</div>
+<script src="auth.js"></script>
+<script>
+
+const currentUser = requireAuth();
+
+</script>
+<script src="script.js"></script>
+</body>
+</html>

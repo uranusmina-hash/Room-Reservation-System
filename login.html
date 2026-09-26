@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - Room Reservation</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="style.css" rel="stylesheet"/>
+</head>
+<body class="auth-page">
+<div aria-hidden="true" class="auth-bg">
+<span class="orb orb-1"></span>
+<span class="orb orb-2"></span>
+<span class="orb orb-3"></span>
+<span class="orb orb-4"></span>
+</div>
+<div class="container small-container">
+<a class="auth-brand" href="index.html">
+<span class="auth-logo">📚</span>
+<span class="auth-wordmark">Room Reservation</span>
+</a>
+<div id="alertBox"></div>
+<div class="tilt-wrap">
+<div class="box auth-card" id="authCard">
+<div class="auth-card-head">
+<span class="auth-eyebrow">Welcome back</span>
+<h2>Log in to your account</h2>
+<p class="auth-sub">
+                    Reserve a school room in just a few clicks.
+                </p>
+</div>
+<form id="loginForm">
+<label>Email</label>
+<input id="email" placeholder="you@school.com" required="" type="email"/>
+<label>Password</label>
+<div class="password-field">
+<input id="password" placeholder="Password" required="" type="password"/>
+<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'password')" type="button">👁️</button>
+</div>
+<button class="btn success full-width" type="submit">
+                    Log In
+                </button>
+</form>
+<p class="auth-footer">
+<a href="forgot-password.html">Forgot password?</a>
+</p>
+<div class="auth-divider"></div>
+<p class="auth-footer">
+                Don't have an account?
+                <a href="register.html">Register here</a>
+</p>
+<div class="glare"></div>
+</div>
+</div>
+</div>
+<script src="auth.js"></script>
+
+<script>
+
+if (getSession()) {
+    window.location.href = "dashboard.html";
+}
+
+document
+.getElementById("loginForm")
+.addEventListener("submit", function(e) {
+
+    e.preventDefault();
+
+    let email =
+        document.getElementById("email").value.trim();
+
+    let password =
+        document.getElementById("password").value;
+
+    let result =
+        loginUser(email, password);
+
+    if (result.success) {
+
+        window.location.href = "dashboard.html";
+
+    } else {
+
+        showAlert(
+            result.message,
+            "error"
+        );
+
+    }
+
+});
+
+function showAlert(message, type) {
+
+    document.getElementById("alertBox").innerHTML =
+        `<div class="alert ${type}">
+            ${message}
+        </div>`;
+
+}
+
+</script>
+</body>
+</html>
