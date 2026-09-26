@@ -31,9 +31,6 @@ let rooms = [
 
 let bookings = [];
 
-const OPEN_TIME = "08:00";
-const CLOSE_TIME = "17:00";
-
 // Fixed, bookable time slots for every room.
 // Users can only reserve one of these blocks, so availability
 // is always clear-cut: a slot is either open, pending, or booked.
@@ -48,22 +45,77 @@ const TIME_SLOTS = [
 let selectedSlot = null;
 
 // Pagination state
-const ROOMS_PER_PAGE = 4;
+const ROOMS_PER_PAGE = 6;
 const BOOKINGS_PER_PAGE = 5;
 const USERS_PER_PAGE = 5;
+const RESETS_PER_PAGE = 5;
 let roomPage = 1;
 let bookingPage = 1;
 let userPage = 1;
+let resetPage = 1;
 let userStatusFilter = "all";
+
+// Today's date as YYYY-MM-DD in the user's LOCAL time zone.
+// (toISOString() uses UTC, which shows yesterday's date during the
+// early morning hours in time zones ahead of UTC, such as the
+// Philippines.)
+function getTodayString() {
+    let d = new Date();
+    let month = String(d.getMonth() + 1).padStart(2, "0");
+    let day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + month + "-" + day;
+}
+
+// The day the date inputs were last synced to, used to notice when
+// midnight passes while the page is still open.
+let lastKnownToday = null;
+
+// Keeps the date inputs tied to the real current date:
+// - the Rooms "Check Availability Date" jumps to today on load and
+//   whenever a new day starts, and can never sit on a past date;
+// - the Reserve form's date can never sit on a past date either.
+function syncTodayDates() {
+
+    let today = getTodayString();
+    let dayChanged = lastKnownToday !== today;
+    lastKnownToday = today;
+
+    let availInput = document.getElementById("availabilityDate");
+    let dateInput = document.getElementById("date");
+
+    if (!availInput || !dateInput) {
+        return;
+    }
+
+    availInput.min = today;
+    dateInput.min = today;
+
+    let availChanged = false;
+
+    if (dayChanged || !availInput.value || availInput.value < today) {
+        availChanged = availInput.value !== today;
+        availInput.value = today;
+    }
+
+    let bookingDateCleared = false;
+
+    if (dateInput.value && dateInput.value < today) {
+        dateInput.value = "";
+        bookingDateCleared = true;
+    }
+
+    if (availChanged) {
+        displayRooms();
+    }
+
+    if (bookingDateCleared) {
+        renderSlotPicker();
+    }
+}
 
 function loadData() {
     rooms = JSON.parse(localStorage.getItem("rooms")) || rooms;
     bookings = JSON.parse(localStorage.getItem("bookings")) || [];
-
-    if (localStorage.getItem("bookings") === null) {
-        bookings = seedBookings();
-        saveData();
-    }
 }
 
 function saveData() {
@@ -71,138 +123,32 @@ function saveData() {
     localStorage.setItem("bookings", JSON.stringify(bookings));
 }
 
-// Builds a small set of realistic example reservations anchored to
-// today's actual date, so the schedule always looks current instead
-// of showing stale, hardcoded dates from the past.
-function seedBookings() {
+function alertMessage(message, type = "success") {
 
-    function addDays(days) {
-        let d = new Date();
-        d.setDate(d.getDate() + days);
-        return d.toISOString().split("T")[0];
-    }
+    let html = `<div class="alert ${type}">${message}</div>`;
 
-    let today = addDays(0);
-    let tomorrow = addDays(1);
-    let in2 = addDays(2);
-    let in3 = addDays(3);
-    let in5 = addDays(5);
+    document.getElementById("alertBox").innerHTML = html;
 
-    return [
-        {
-            id: 1001,
-            roomId: 1,
-            name: "Maria Santos",
-            email: "maria.santos@school.com",
-            role: "teacher",
-            date: today,
-            start: "08:00",
-            end: "09:30",
-            purpose: "Intro to Programming Class",
-            status: "approved"
-        },
-        {
-            id: 1002,
-            roomId: 1,
-            name: "James Cruz",
-            email: "james.cruz@school.com",
-            role: "student",
-            date: today,
-            start: "13:00",
-            end: "14:30",
-            purpose: "Robotics Club Practice",
-            status: "pending"
-        },
-        {
-            id: 1003,
-            roomId: 2,
-            name: "Angela Reyes",
-            email: "angela.reyes@school.com",
-            role: "teacher",
-            date: today,
-            start: "10:00",
-            end: "11:30",
-            purpose: "Chemistry Lab Session",
-            status: "approved"
-        },
-        {
-            id: 1004,
-            roomId: 3,
-            name: "Paolo Mendoza",
-            email: "paolo.mendoza@school.com",
-            role: "student",
-            date: tomorrow,
-            start: "08:00",
-            end: "09:30",
-            purpose: "Study Group - Reading Circle",
-            status: "pending"
-        },
-        {
-            id: 1005,
-            roomId: 4,
-            name: "Karla Dizon",
-            email: "karla.dizon@school.com",
-            role: "staff",
-            date: tomorrow,
-            start: "15:00",
-            end: "17:00",
-            purpose: "Choir Rehearsal",
-            status: "approved"
-        },
-        {
-            id: 1006,
-            roomId: 1,
-            name: "Ramon Torres",
-            email: "ramon.torres@school.com",
-            role: "teacher",
-            date: in2,
-            start: "10:00",
-            end: "11:30",
-            purpose: "Web Design Workshop",
-            status: "approved"
-        },
-        {
-            id: 1007,
-            roomId: 2,
-            name: "Ella Navarro",
-            email: "ella.navarro@school.com",
-            role: "student",
-            date: in3,
-            start: "13:00",
-            end: "14:30",
-            purpose: "Science Fair Prep",
-            status: "pending"
-        },
-        {
-            id: 1008,
-            roomId: 3,
-            name: "Vince Aquino",
-            email: "vince.aquino@school.com",
-            role: "staff",
-            date: in5,
-            start: "15:00",
-            end: "17:00",
-            purpose: "Faculty Book Club",
-            status: "approved"
-        },
-        {
-            id: 1009,
-            roomId: 4,
-            name: "Bea Fernandez",
-            email: "bea.fernandez@school.com",
-            role: "student",
-            date: tomorrow,
-            start: "10:00",
-            end: "11:30",
-            purpose: "Dance Practice",
-            status: "rejected"
+    // A floating modal sits on top of everything else, so alertBox
+    // (back in the page behind it) would be invisible while a modal
+    // is open. Mirror the message into that modal's own alert slot.
+    document.querySelectorAll(".modal-overlay").forEach(overlay => {
+        if (overlay.style.display === "flex") {
+            let slot = overlay.querySelector(".modal-alert");
+            if (slot) slot.innerHTML = html;
         }
-    ];
+    });
 }
 
-function alertMessage(message, type = "success") {
-    document.getElementById("alertBox").innerHTML =
-        `<div class="alert ${type}">${message}</div>`;
+// Escapes text before it goes into innerHTML (names/emails are typed
+// in by the admin and users, so never trust them as raw HTML).
+function escapeHtml(text) {
+    return String(text == null ? "" : text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
 
 // Human-readable label for a stored role value.
@@ -225,6 +171,33 @@ function getInitials(name) {
     return initials || "?";
 }
 
+// Opens/closes the sidebar Settings popover (profile / theme / logout).
+function toggleSettingsMenu(e) {
+    if (e) e.stopPropagation();
+    let menu = document.getElementById("settingsMenu");
+    if (!menu) return;
+    let isOpen = menu.classList.toggle("open");
+    menu.querySelector(".settings-trigger").setAttribute("aria-expanded", isOpen ? "true" : "false");
+}
+
+function closeSettingsMenu() {
+    let menu = document.getElementById("settingsMenu");
+    if (!menu) return;
+    menu.classList.remove("open");
+    menu.querySelector(".settings-trigger").setAttribute("aria-expanded", "false");
+}
+
+document.addEventListener("click", function (e) {
+    let menu = document.getElementById("settingsMenu");
+    if (menu && menu.classList.contains("open") && !menu.contains(e.target)) {
+        closeSettingsMenu();
+    }
+});
+
+document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeSettingsMenu();
+});
+
 function displayUser() {
 
     let avatarHtml = currentUser.photo
@@ -232,10 +205,13 @@ function displayUser() {
         : `<span class="userbar-avatar userbar-avatar-fallback">${getInitials(currentUser.name)}</span>`;
 
     document.getElementById("userBar").innerHTML = `
-        ${avatarHtml}
-        <span>${currentUser.name} (${roleLabel(currentUser.role)})</span>
-        <button class="btn" onclick="openPasswordModal()">🔑 Change Password</button>
-        <button class="btn" onclick="logout()">Logout</button>
+        <span class="userbar-identity">
+            ${avatarHtml}
+            <span class="userbar-text">
+                <span class="userbar-name">${currentUser.name}</span>
+                <span class="userbar-role">${roleLabel(currentUser.role)}</span>
+            </span>
+        </span>
     `;
 
     if (currentUser.role === "admin") {
@@ -244,6 +220,12 @@ function displayUser() {
         );
         renderUsers();
         renderNavBadges();
+
+        // The admin sees every user's reservations here (and approves
+        // or rejects the pending ones), so "My Reservations" would be
+        // misleading.
+        document.getElementById("reservationsNavLabel").textContent =
+            "All Reservations";
     }
 
     renderProfilePanel();
@@ -255,17 +237,13 @@ function renderNavBadges() {
         return;
     }
 
-    let pendingUserCount = getUsers().filter(
-        u => (u.status || "approved") === "pending"
-    ).length;
-
     let pendingResetCount = getResetRequests().length;
 
     let pendingBookingCount = bookings.filter(
         b => b.status === "pending"
     ).length;
 
-    setNavBadge("manage-users", pendingUserCount + pendingResetCount);
+    setNavBadge("manage-users", pendingResetCount);
     setNavBadge("reservations", pendingBookingCount);
 }
 
@@ -317,15 +295,77 @@ function switchPanel(name) {
     );
     if (btn) btn.classList.add("active");
 
+    // Accounts may have been created, blocked or removed since the
+    // admin last looked, so refresh the "Reserve For" list on entry.
+    if (name === "reserve") {
+        populateReserveForUsers();
+    }
+
+    if (name === "rooms" || name === "reserve") {
+        syncTodayDates();
+    }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Fills in the read-only profile fields and the avatar preview.
+// Admin only: fills the "Reserve For" dropdown with the accounts a
+// reservation can be made for. Each option shows name, role and email
+// (names can repeat, the email is unique) and its value is the email.
+// The admin is never listed - reservations are always for someone else.
+function populateReserveForUsers() {
+
+    let wrap = document.getElementById("reserveForWrap");
+    let select = document.getElementById("reserveFor");
+
+    if (!wrap || !select) {
+        return;
+    }
+
+    if (currentUser.role !== "admin") {
+        wrap.style.display = "none";
+        select.required = false;
+        return;
+    }
+
+    wrap.style.display = "block";
+    select.required = true;
+
+    let previous = select.value;
+
+    let users = getUsers()
+        .filter(u => u.role !== "admin" && u.status !== "blocked")
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    let html = `<option value="">Select a user...</option>`;
+
+    users.forEach(u => {
+        html += `
+            <option value="${escapeHtml(u.email)}">
+                ${escapeHtml(u.name)} - ${escapeHtml(u.email)} (${roleLabel(u.role)})
+            </option>
+        `;
+    });
+
+    select.innerHTML = html;
+
+    // Keep the admin's choice if that account is still in the list.
+    if (previous && users.some(u => u.email === previous)) {
+        select.value = previous;
+    }
+}
+
+// Fills in the profile details, the email field and the avatar preview.
+// Also clears the password fields, so it doubles as the "Cancel" reset.
 function renderProfilePanel() {
 
-    document.getElementById("profileName").textContent = currentUser.name;
-    document.getElementById("profileEmail").textContent = currentUser.email;
-    document.getElementById("profileRole").textContent = roleLabel(currentUser.role);
+    document.getElementById("profileHeading").textContent =
+        `👤 ${currentUser.name} (${roleLabel(currentUser.role)})`;
+    document.getElementById("profileCurrentEmail").textContent = currentUser.email;
+
+    document.getElementById("profileEmailInput").value = "";
+    document.getElementById("profileCurrentPassword").value = "";
+    document.getElementById("profileNewPassword").value = "";
+    document.getElementById("profileConfirmPassword").value = "";
 
     let img = document.getElementById("profileAvatarImg");
     let initials = document.getElementById("profileAvatarInitials");
@@ -341,79 +381,240 @@ function renderProfilePanel() {
     }
 }
 
-function openPasswordModal() {
-    document.getElementById("passwordForm").reset();
-    document.getElementById("passwordModal").style.display = "flex";
+// Profile is a floating modal now, not a dashboard panel — opening
+// or cancelling it never touches switchPanel, so whatever panel was
+// showing underneath stays exactly as it was.
+function openProfileModal() {
+    closeSettingsMenu();
+    renderProfilePanel();
+    clearModalAlert("profileModal");
+    document.getElementById("profileModal").style.display = "flex";
 }
 
-function closePasswordModal() {
-    document.getElementById("passwordModal").style.display = "none";
+function closeProfileModal() {
+    document.getElementById("profileModal").style.display = "none";
+    renderProfilePanel();
 }
 
-function submitPasswordChange() {
+function openCreateUserModal() {
+    document.getElementById("createUserForm").reset();
+    clearModalAlert("createUserModal");
+    document.getElementById("createUserModal").style.display = "flex";
+}
+
+function closeCreateUserModal() {
+    document.getElementById("createUserModal").style.display = "none";
+}
+
+function clearModalAlert(modalId) {
+    let modal = document.getElementById(modalId);
+    let slot = modal && modal.querySelector(".modal-alert");
+    if (slot) slot.innerHTML = "";
+}
+
+// Downsizes and compresses an uploaded photo before it's stored.
+// Phone camera photos can be several MB straight out of the file
+// picker; storing that raw in localStorage and re-rendering it for
+// every user in the admin list is what was causing the slow,
+// sometimes-white-screen dashboard on mobile. Shrinking to a small
+// square JPEG keeps each avatar down to a few KB.
+function resizeImageFile(file, maxWidth, maxHeight, quality) {
+
+    return new Promise(function (resolve, reject) {
+
+        if (!file.type || file.type.indexOf("image/") !== 0) {
+            reject(new Error("Not an image file."));
+            return;
+        }
+
+        let reader = new FileReader();
+
+        reader.onerror = function () {
+            reject(new Error("Could not read file."));
+        };
+
+        reader.onload = function (evt) {
+
+            let img = new Image();
+
+            img.onerror = function () {
+                reject(new Error("Could not load image."));
+            };
+
+            img.onload = function () {
+
+                let width = img.width;
+                let height = img.height;
+
+                let scale = Math.min(
+                    1,
+                    maxWidth / width,
+                    maxHeight / height
+                );
+
+                let targetWidth = Math.max(1, Math.round(width * scale));
+                let targetHeight = Math.max(1, Math.round(height * scale));
+
+                let canvas = document.createElement("canvas");
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+
+                let ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+                let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+                resolve(dataUrl);
+            };
+
+            img.src = evt.target.result;
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+function saveProfile() {
+
+    let email =
+        document.getElementById("profileEmailInput").value.trim();
 
     let current =
-        document.getElementById("currentPassword").value;
+        document.getElementById("profileCurrentPassword").value;
 
     let next =
-        document.getElementById("newPassword").value;
+        document.getElementById("profileNewPassword").value;
 
     let confirmNext =
-        document.getElementById("confirmPassword").value;
+        document.getElementById("profileConfirmPassword").value;
 
-    if (!current || !next || !confirmNext) {
+    function fail(message) {
+        alertMessage(message, "error");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
-        alertMessage(
-            "Please fill in all fields.",
-            "error"
-        );
+    let emailChanged = email.length > 0 && email !== currentUser.email;
+    let passwordChanged = next.length > 0;
 
+    if (!emailChanged && !passwordChanged) {
+        fail("No changes to save.");
         return;
     }
 
-    if (next.length < 6) {
-
-        alertMessage(
-            "New password must be at least 6 characters.",
-            "error"
-        );
-
+    if (passwordChanged && next.length < 6) {
+        fail("New password must be at least 6 characters.");
         return;
     }
 
-    if (next !== confirmNext) {
-
-        alertMessage(
-            "New passwords do not match.",
-            "error"
-        );
-
+    if (passwordChanged && next !== confirmNext) {
+        fail("New passwords do not match.");
         return;
     }
 
-    let result = changePassword(currentUser.id, current, next);
+    if (!current) {
+        fail("Enter your current password to save these changes.");
+        return;
+    }
+
+    let result = updateAccount(currentUser.id, {
+        email: emailChanged ? email : currentUser.email,
+        currentPassword: current,
+        newPassword: next
+    });
 
     if (!result.success) {
-
-        alertMessage(
-            result.message,
-            "error"
-        );
-
+        fail(result.message);
         return;
     }
 
-    closePasswordModal();
+    if (result.emailChanged) {
+
+        // Reservations are matched to their owner by email, so move
+        // this user's existing reservations over to the new address.
+        bookings.forEach(b => {
+            if (b.email === result.oldEmail) {
+                b.email = result.newEmail;
+            }
+        });
+
+        saveData();
+
+        currentUser.email = result.newEmail;
+
+        displayBookings();
+        renderStats();
+    }
+
+    renderProfilePanel();
+    closeProfileModal();
+
+    let what = result.emailChanged && result.passwordChanged
+        ? "Email and password updated."
+        : result.emailChanged
+            ? "Email updated. Use it the next time you log in."
+            : "Password updated.";
+
+    alertMessage(what, "success");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ------------------------------------------------------------
+// Manage Users (admin only)
+// Accounts only come from the Create User form. The list is split
+// into tabs by role so each group is easy to scan.
+// ------------------------------------------------------------
+const USER_ROLE_TABS = [
+    { key: "all",     label: "All" },
+    { key: "teacher", label: "Teachers" },
+    { key: "staff",   label: "School Staff" },
+    { key: "student", label: "Student Leaders" }
+];
+
+let userRoleTab = "all";
+
+function createUserFromForm() {
+
+    if (currentUser.role !== "admin") {
+        return;
+    }
+
+    let name = document.getElementById("newUserName").value;
+    let email = document.getElementById("newUserEmail").value;
+    let password = document.getElementById("newUserPassword").value;
+    let role = document.getElementById("newUserRole").value;
+
+    let result = createUserAccount(name, email, password, role);
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (!result.success) {
+        alertMessage(result.message, "error");
+        return;
+    }
+
+    document.getElementById("createUserForm").reset();
+    closeCreateUserModal();
+
+    // Jump to the tab the new account landed in so the admin sees it.
+    userRoleTab = role;
+    userStatusFilter = "all";
+    document.getElementById("userStatusFilter").value = "all";
+    userPage = 1;
+
+    renderUsers();
 
     alertMessage(
-        "Password updated successfully.",
+        "Account created for " + escapeHtml(name.trim()) + " (" +
+        roleLabel(role) + "). Give them the email and temporary password.",
         "success"
     );
 }
 
-// Lists all registered accounts for the admin, with the ability
-// to remove a non-admin account.
-let showFlaggedOnly = false;
+function switchUserTab(key) {
+    userRoleTab = key;
+    userPage = 1;
+    renderUsers();
+}
 
 function renderUsers() {
 
@@ -423,37 +624,44 @@ function renderUsers() {
 
     renderResetRequests();
 
-    let users = getUsers();
-
-    // Score every non-admin account against the troll/spam heuristics.
-    let scored = users.map(u => ({
-        user: u,
-        trust: analyzeAccountTrust(u, users)
-    }));
-
-    let flaggedCount = scored.filter(
-        s => s.trust.level !== "low"
-    ).length;
-
-    let pendingCount = users.filter(
-        u => (u.status || "approved") === "pending"
-    ).length;
+    // The admin manages their own login from the Profile tab, so the
+    // list only holds the accounts the admin created.
+    let users = getUsers().filter(u => u.role !== "admin");
 
     document.getElementById("statUsers").textContent = users.length;
 
-    document.getElementById("statFlagged").textContent = flaggedCount;
+    document.getElementById("statBlockedUsers").textContent =
+        users.filter(u => u.status === "blocked").length;
 
-    document.getElementById("statPendingUsers").textContent = pendingCount;
+    document.getElementById("userRoleTabs").innerHTML =
+        USER_ROLE_TABS.map(t => {
 
-    let visible = scored;
+            let count = t.key === "all"
+                ? users.length
+                : users.filter(u => u.role === t.key).length;
 
-    if (showFlaggedOnly) {
-        visible = visible.filter(s => s.trust.level !== "low");
+            return `
+                <button
+                    type="button"
+                    class="role-tab ${t.key === userRoleTab ? "active" : ""}"
+                    onclick="switchUserTab('${t.key}')"
+                >
+                    ${t.label}
+                    <span class="role-tab-count">${count}</span>
+                </button>
+            `;
+
+        }).join("");
+
+    let visible = users;
+
+    if (userRoleTab !== "all") {
+        visible = visible.filter(u => u.role === userRoleTab);
     }
 
     if (userStatusFilter !== "all") {
         visible = visible.filter(
-            s => (s.user.status || "approved") === userStatusFilter
+            u => (u.status || "approved") === userStatusFilter
         );
     }
 
@@ -472,152 +680,50 @@ function renderUsers() {
 
         html = `
             <div class="empty">
-                No users match the current filters.
+                No accounts here yet. Use the form above to create one.
             </div>
         `;
     }
 
-    pageItems.forEach(({ user: u, trust }) => {
+    pageItems.forEach(u => {
 
-        let trustBadge = `<span class="status approved">Admin</span>`;
+        let isBlocked = u.status === "blocked";
 
-        if (u.role !== "admin") {
+        let statusBadge = isBlocked
+            ? `<span class="status blocked">🚫 Blocked</span>`
+            : `<span class="status approved">✅ Active</span>`;
 
-            if (trust.level === "high") {
-                trustBadge = `<span class="status trust-high">🚩 Likely Fake</span>`;
-            } else if (trust.level === "medium") {
-                trustBadge = `<span class="status trust-medium">⚠️ Needs Review</span>`;
-            } else {
-                trustBadge = `<span class="status trust-low">✅ Looks Legit</span>`;
-            }
-        }
+        let name = escapeHtml(u.name);
 
-        let approvalStatus = u.role === "admin"
-            ? "approved"
-            : (u.status || "approved");
-
-        let approvalBadge = `<span class="status approved">✅ Approved</span>`;
-
-        if (approvalStatus === "pending") {
-            approvalBadge = `<span class="status pending">⏳ Pending</span>`;
-        } else if (approvalStatus === "rejected") {
-            approvalBadge = `<span class="status trust-high">⛔ Rejected</span>`;
-        } else if (approvalStatus === "blocked") {
-            approvalBadge = `<span class="status blocked">🚫 Blocked</span>`;
-        }
-
-        let roleControl = u.role === "admin"
-            ? `<span class="user-row-role-fixed">${roleLabel(u.role)}</span>`
-            : `
-                <select
-                    class="role-select"
-                    onchange="changeUserRole(${u.id}, this.value)"
-                >
-                    <option value="student" ${u.role === "student" ? "selected" : ""}>Student Leader</option>
-                    <option value="teacher" ${u.role === "teacher" ? "selected" : ""}>Teacher</option>
-                    <option value="staff" ${u.role === "staff" ? "selected" : ""}>School Staff</option>
-                </select>
-            `;
+        let avatar = u.photo
+            ? `<img src="${u.photo}" alt="${name}" class="user-row-avatar">`
+            : `<span class="user-row-avatar user-row-avatar-fallback">${escapeHtml(getInitials(u.name))}</span>`;
 
         html += `
             <div class="user-row">
-                <div class="user-row-photo">
-                    ${
-                        u.photo
-                        ? `<img src="${u.photo}" alt="${u.name}" class="user-row-avatar">`
-                        : `<span class="user-row-avatar user-row-avatar-fallback">${getInitials(u.name)}</span>`
-                    }
-                </div>
+                <div class="user-row-photo">${avatar}</div>
                 <div class="user-row-info">
-                    <strong>${u.name}</strong>
-                    <p>${u.email} &middot; ${roleControl}</p>
-                    ${
-                        trust.flags.length > 0
-                        ? `<p class="trust-flags">🔍 ${trust.flags.join(" &middot; ")}</p>`
-                        : ""
-                    }
+                    <strong>${name}</strong>
+                    <p>
+                        ${escapeHtml(u.email)} &middot;
+                        <select
+                            class="role-select"
+                            onchange="changeUserRole(${u.id}, this.value)"
+                        >
+                            <option value="teacher" ${u.role === "teacher" ? "selected" : ""}>Teacher</option>
+                            <option value="staff" ${u.role === "staff" ? "selected" : ""}>School Staff</option>
+                            <option value="student" ${u.role === "student" ? "selected" : ""}>Student Leader</option>
+                        </select>
+                    </p>
                 </div>
-
                 <div class="user-row-actions">
-
-                    ${approvalBadge}
-                    ${trustBadge}
-
+                    ${statusBadge}
                     ${
-                        u.role !== "admin" && (approvalStatus === "pending" || approvalStatus === "rejected")
-                        ?
-                        `
-                        <button
-                            class="btn success"
-                            onclick="approveUserAccount(${u.id})"
-                        >
-                            Approve
-                        </button>
-                        `
-                        :
-                        ""
+                        isBlocked
+                        ? `<button class="btn success" onclick="reactivateUserAccount(${u.id})">Reactivate</button>`
+                        : `<button class="btn" onclick="blockUserAccount(${u.id})">Block</button>`
                     }
-
-                    ${
-                        u.role !== "admin" && approvalStatus === "pending"
-                        ?
-                        `
-                        <button
-                            class="btn"
-                            onclick="rejectUserAccount(${u.id})"
-                        >
-                            Reject
-                        </button>
-                        `
-                        :
-                        ""
-                    }
-
-                    ${
-                        u.role !== "admin" && approvalStatus === "approved"
-                        ?
-                        `
-                        <button
-                            class="btn"
-                            onclick="blockUserAccount(${u.id})"
-                        >
-                            Block
-                        </button>
-                        `
-                        :
-                        ""
-                    }
-
-                    ${
-                        u.role !== "admin" && approvalStatus === "blocked"
-                        ?
-                        `
-                        <button
-                            class="btn success"
-                            onclick="reactivateUserAccount(${u.id})"
-                        >
-                            Reactivate
-                        </button>
-                        `
-                        :
-                        ""
-                    }
-
-                    ${
-                        u.role !== "admin"
-                        ?
-                        `
-                        <button
-                            class="btn danger"
-                            onclick="deleteUserAccount(${u.id})"
-                        >
-                            Remove
-                        </button>
-                        `
-                        :
-                        ""
-                    }
-
+                    <button class="btn danger" onclick="deleteUserAccount(${u.id})">Remove</button>
                 </div>
             </div>
         `;
@@ -631,13 +737,6 @@ function renderUsers() {
     renderNavBadges();
 }
 
-function toggleFlaggedOnly() {
-    showFlaggedOnly =
-        document.getElementById("flaggedOnlyFilter").checked;
-    userPage = 1;
-    renderUsers();
-}
-
 function filterUsersByStatus() {
     userStatusFilter =
         document.getElementById("userStatusFilter").value;
@@ -648,60 +747,6 @@ function filterUsersByStatus() {
 function goToUserPage(page) {
     userPage = page;
     renderUsers();
-}
-
-function approveUserAccount(id) {
-
-    if (currentUser.role !== "admin") {
-        return;
-    }
-
-    let users = getUsers();
-    let user = users.find(u => u.id === id);
-
-    if (!user) {
-        return;
-    }
-
-    user.status = "approved";
-
-    saveUsers(users);
-
-    renderUsers();
-
-    alertMessage(
-        user.name + " has been approved.",
-        "success"
-    );
-}
-
-function rejectUserAccount(id) {
-
-    if (currentUser.role !== "admin") {
-        return;
-    }
-
-    if (!confirm("Reject this account? The user will not be able to log in.")) {
-        return;
-    }
-
-    let users = getUsers();
-    let user = users.find(u => u.id === id);
-
-    if (!user) {
-        return;
-    }
-
-    user.status = "rejected";
-
-    saveUsers(users);
-
-    renderUsers();
-
-    alertMessage(
-        user.name + " has been rejected.",
-        "success"
-    );
 }
 
 function blockUserAccount(id) {
@@ -717,7 +762,7 @@ function blockUserAccount(id) {
     let users = getUsers();
     let user = users.find(u => u.id === id);
 
-    if (!user) {
+    if (!user || user.role === "admin") {
         return;
     }
 
@@ -728,7 +773,7 @@ function blockUserAccount(id) {
     renderUsers();
 
     alertMessage(
-        user.name + " has been blocked.",
+        escapeHtml(user.name) + " has been blocked.",
         "success"
     );
 }
@@ -753,7 +798,7 @@ function reactivateUserAccount(id) {
     renderUsers();
 
     alertMessage(
-        user.name + " has been reactivated.",
+        escapeHtml(user.name) + " has been reactivated.",
         "success"
     );
 }
@@ -764,10 +809,14 @@ function changeUserRole(id, role) {
         return;
     }
 
+    if (!CREATABLE_ROLES.includes(role)) {
+        return;
+    }
+
     let users = getUsers();
     let user = users.find(u => u.id === id);
 
-    if (!user) {
+    if (!user || user.role === "admin") {
         return;
     }
 
@@ -778,7 +827,7 @@ function changeUserRole(id, role) {
     renderUsers();
 
     alertMessage(
-        user.name + "'s role was changed to " + roleLabel(role) + ".",
+        escapeHtml(user.name) + "'s role was changed to " + roleLabel(role) + ".",
         "success"
     );
 }
@@ -793,9 +842,14 @@ function deleteUserAccount(id) {
         return;
     }
 
-    let users = getUsers().filter(u => u.id !== id);
+    let users = getUsers().filter(u => u.id !== id || u.role === "admin");
 
     saveUsers(users);
+
+    // Also clear any password reset request that belonged to this user.
+    saveResetRequests(
+        getResetRequests().filter(r => r.userId !== id)
+    );
 
     renderUsers();
 
@@ -815,24 +869,35 @@ function renderResetRequests() {
 
     let box = document.getElementById("resetRequestsBox");
     let list = document.getElementById("resetRequestList");
+    let pager = document.getElementById("resetPagination");
 
     if (requests.length === 0) {
         box.style.display = "none";
         list.innerHTML = "";
+        pager.innerHTML = "";
         return;
     }
 
     box.style.display = "block";
 
+    let totalPages = Math.max(1, Math.ceil(requests.length / RESETS_PER_PAGE));
+    if (resetPage > totalPages) resetPage = totalPages;
+    if (resetPage < 1) resetPage = 1;
+
+    let pageItems = requests.slice(
+        (resetPage - 1) * RESETS_PER_PAGE,
+        resetPage * RESETS_PER_PAGE
+    );
+
     let html = "";
 
-    requests.forEach(r => {
+    pageItems.forEach(r => {
 
         html += `
             <div class="user-row">
                 <div class="user-row-info">
-                    <strong>${r.name}</strong>
-                    <p>${r.email}</p>
+                    <strong>${escapeHtml(r.name)}</strong>
+                    <p>${escapeHtml(r.email)}</p>
                 </div>
                 <div class="user-row-actions">
                     <button
@@ -847,6 +912,14 @@ function renderResetRequests() {
     });
 
     list.innerHTML = html;
+
+    pager.innerHTML =
+        paginationHTML(resetPage, totalPages, "goToResetPage");
+}
+
+function goToResetPage(page) {
+    resetPage = page;
+    renderResetRequests();
 }
 
 function resolveResetRequest(id) {
@@ -883,7 +956,7 @@ function resolveResetRequest(id) {
     }
 }
 
-// Updates the four stat tiles at the top of the dashboard.
+// Updates the stat tiles at the top of the dashboard.
 function renderStats() {
 
     let date = document.getElementById("availabilityDate").value;
@@ -910,6 +983,12 @@ function renderStats() {
 
     document.getElementById("statApproved").textContent =
         scope.filter(b => b.status === "approved").length;
+
+    let cancelledEl = document.getElementById("statCancelled");
+    if (cancelledEl) {
+        cancelledEl.textContent =
+            scope.filter(b => b.status === "cancelled").length;
+    }
 }
 
 function formatTime(time) {
@@ -1182,7 +1261,7 @@ function showRoomDetails(id) {
 
     let date =
         document.getElementById("availabilityDate").value ||
-        new Date().toISOString().split("T")[0];
+        getTodayString();
 
     let timeline = getTimeline(room.id, date);
 
@@ -1367,11 +1446,37 @@ function bookRoom() {
         return;
     }
 
+    // Who the reservation belongs to. Regular users book for
+    // themselves; the admin must pick another account to book for.
+    let owner = currentUser;
+    let isAdminBooking = currentUser.role === "admin";
+
+    if (isAdminBooking) {
+
+        let ownerEmail =
+            document.getElementById("reserveFor").value;
+
+        owner = getUsers().find(
+            u => u.email === ownerEmail &&
+                 u.role !== "admin" &&
+                 u.status !== "blocked"
+        );
+
+        if (!owner) {
+
+            alertMessage(
+                "Please choose the user this reservation is for.",
+                "error"
+            );
+
+            return;
+        }
+    }
+
     let start = selectedSlot.start;
     let end = selectedSlot.end;
 
-    let today =
-        new Date().toISOString().split("T")[0];
+    let today = getTodayString();
 
     if (date < today) {
 
@@ -1401,11 +1506,11 @@ function bookRoom() {
 
         roomId: roomId,
 
-        name: currentUser.name,
+        name: owner.name,
 
-        email: currentUser.email,
+        email: owner.email,
 
-        role: currentUser.role,
+        role: owner.role,
 
         date: date,
 
@@ -1415,7 +1520,12 @@ function bookRoom() {
 
         purpose: purpose,
 
-        status: "pending"
+        // The admin is the approver, so a reservation the admin makes
+        // for someone is approved right away instead of waiting on
+        // the admin's own review.
+        status: isAdminBooking ? "approved" : "pending",
+
+        reservedByAdmin: isAdminBooking ? currentUser.name : null
     });
 
     saveData();
@@ -1431,6 +1541,19 @@ function bookRoom() {
     selectedSlot = null;
 
     renderSlotPicker();
+
+    populateReserveForUsers();
+
+    if (isAdminBooking) {
+
+        alertMessage(
+            "Reservation approved for " + escapeHtml(owner.name) +
+            " (" + escapeHtml(owner.email) + "). It now appears in their reservations.",
+            "success"
+        );
+
+        return;
+    }
 
     alertMessage(
         "Reservation submitted! The room is now temporarily reserved until the admin approves or cancels it.",
@@ -1565,7 +1688,11 @@ function displayBookings() {
                         - ${b.purpose}
                     </h3>
 
-                    <p>👤 ${b.name}</p>
+                    <p>👤 ${escapeHtml(b.name)}${
+                        b.reservedByAdmin
+                        ? ` <span class="note">(reserved by admin)</span>`
+                        : ""
+                    }</p>
 
                     <p>📅 ${formatDate(b.date)}</p>
 
@@ -1931,23 +2058,20 @@ document.addEventListener(
 
         displayBookings();
 
-        let today =
-            new Date()
-            .toISOString()
-            .split("T")[0];
+        syncTodayDates();
 
-        document.getElementById("date").min =
-            today;
+        // Re-check the date when the person comes back to the tab
+        // and once a minute, so a page left open past midnight (or
+        // overnight) always shows the current day.
+        document.addEventListener("visibilitychange", function() {
+            if (!document.hidden) {
+                syncTodayDates();
+            }
+        });
 
-        document.getElementById(
-            "availabilityDate"
-        ).min = today;
+        window.addEventListener("focus", syncTodayDates);
 
-        document.getElementById(
-            "availabilityDate"
-        ).value = today;
-
-        displayRooms();
+        setInterval(syncTodayDates, 60000);
 
         document.getElementById(
             "availabilityDate"
@@ -2013,14 +2137,26 @@ document.addEventListener(
         );
 
         document.getElementById(
-            "passwordForm"
+            "profileForm"
         ).addEventListener(
             "submit",
             function(e) {
 
                 e.preventDefault();
 
-                submitPasswordChange();
+                saveProfile();
+            }
+        );
+
+        document.getElementById(
+            "createUserForm"
+        ).addEventListener(
+            "submit",
+            function(e) {
+
+                e.preventDefault();
+
+                createUserFromForm();
             }
         );
 
@@ -2033,11 +2169,7 @@ document.addEventListener(
                     return;
                 }
 
-                let reader = new FileReader();
-
-                reader.onload = function (evt) {
-
-                    let dataUrl = evt.target.result;
+                resizeImageFile(file, 200, 200, 0.85).then(function (dataUrl) {
 
                     let result = updateProfilePhoto(currentUser.id, dataUrl);
 
@@ -2060,9 +2192,14 @@ document.addEventListener(
                             "error"
                         );
                     }
-                };
 
-                reader.readAsDataURL(file);
+                }).catch(function () {
+
+                    alertMessage(
+                        "Could not process that image. Please try a different photo.",
+                        "error"
+                    );
+                });
             });
     }
 );

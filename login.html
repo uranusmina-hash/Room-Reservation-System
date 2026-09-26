@@ -1,107 +1,113 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Login - Room Reservation</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-<link href="style.css" rel="stylesheet"/>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Room Reservation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="style.css">
+    <script>if (localStorage.getItem("rr-theme") === "light") document.documentElement.setAttribute("data-theme", "light");</script>
 </head>
 <body class="auth-page">
-<div aria-hidden="true" class="auth-bg">
-<span class="orb orb-1"></span>
-<span class="orb orb-2"></span>
-<span class="orb orb-3"></span>
-<span class="orb orb-4"></span>
-</div>
-<div class="container small-container">
-<a class="auth-brand" href="index.html">
-<span class="auth-logo">📚</span>
-<span class="auth-wordmark">Room Reservation</span>
-</a>
-<div id="alertBox"></div>
-<div class="tilt-wrap">
-<div class="box auth-card" id="authCard">
-<div class="auth-card-head">
-<span class="auth-eyebrow">Welcome back</span>
-<h2>Log in to your account</h2>
-<p class="auth-sub">
+
+    <div class="auth-bg" aria-hidden="true">
+        <span class="orb orb-1"></span>
+        <span class="orb orb-2"></span>
+        <span class="orb orb-3"></span>
+        <span class="orb orb-4"></span>
+    </div>
+
+    <div class="container small-container">
+        <div class="auth-brand-row">
+            <a class="auth-brand" href="index.html">
+                <span class="auth-logo">📚</span>
+                <span class="auth-wordmark">Room Reservation</span>
+            </a>
+            <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+                <span class="theme-toggle-thumb">🌙</span>
+            </button>
+        </div>
+
+        <div id="alertBox"></div>
+
+        <div class="box auth-card">
+            <div class="auth-card-head">
+                <span class="auth-eyebrow">Welcome back</span>
+                <h2>Log in to your account</h2>
+                <p class="auth-sub">
                     Reserve a school room in just a few clicks.
                 </p>
-</div>
-<form id="loginForm">
-<label>Email</label>
-<input id="email" placeholder="you@school.com" required="" type="email"/>
-<label>Password</label>
-<div class="password-field">
-<input id="password" placeholder="Password" required="" type="password"/>
-<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'password')" type="button">👁️</button>
-</div>
-<button class="btn success full-width" type="submit">
-                    Log In
-                </button>
-</form>
-<p class="auth-footer">
-<a href="forgot-password.html">Forgot password?</a>
-</p>
-<div class="auth-divider"></div>
-<p class="auth-footer">
-                Don't have an account?
-                <a href="register.html">Register here</a>
-</p>
-<div class="glare"></div>
-</div>
-</div>
-</div>
-<script src="auth.js"></script>
+            </div>
 
-<script>
+            <form id="loginForm">
+                <label>Email</label>
+                <input id="email" type="email" placeholder="you@gmail.com" pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$" title="Enter a valid @gmail.com email" required>
 
-if (getSession()) {
-    window.location.href = "dashboard.html";
-}
+                <label>Password</label>
+                <div class="password-field">
+                    <input id="password" type="password" placeholder="Password" required>
+                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'password')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
 
-document
-.getElementById("loginForm")
-.addEventListener("submit", function(e) {
+                <label class="checkbox-field">
+                    <input id="rememberMe" type="checkbox" checked>
+                    <span class="checkbox-box"></span>
+                    <span class="checkbox-label">Remember me</span>
+                </label>
 
-    e.preventDefault();
+                <button class="btn success full-width" type="submit">Log In</button>
+            </form>
 
-    let email =
-        document.getElementById("email").value.trim();
+            <p class="auth-footer">
+                <a href="forgot-password.html">Forgot password?</a>
+            </p>
 
-    let password =
-        document.getElementById("password").value;
+            <div class="auth-divider"></div>
 
-    let result =
-        loginUser(email, password);
+            <p class="auth-footer">
+                Accounts are created by the school admin.
+                Contact the admin office if you need access.
+            </p>
+        </div>
+    </div>
 
-    if (result.success) {
+    <script src="auth.js"></script>
+    <script src="theme.js"></script>
+    <script>
 
-        window.location.href = "dashboard.html";
+        if (getSession()) {
+            window.location.href = "dashboard.html";
+        }
 
-    } else {
+        // Pre-fill the form if "Remember me" was used last time,
+        // so signing back in (including after logging out) is a
+        // single click on "Log In".
+        let remembered = getRememberedLogin();
+        if (remembered) {
+            document.getElementById("email").value = remembered.email;
+            document.getElementById("password").value = remembered.password;
+            document.getElementById("rememberMe").checked = true;
+        }
 
-        showAlert(
-            result.message,
-            "error"
-        );
+        document.getElementById("loginForm").addEventListener("submit", function (e) {
 
-    }
+            e.preventDefault();
 
-});
+            let email = document.getElementById("email").value.trim();
+            let password = document.getElementById("password").value;
+            let remember = document.getElementById("rememberMe").checked;
 
-function showAlert(message, type) {
+            let result = loginUser(email, password, remember);
 
-    document.getElementById("alertBox").innerHTML =
-        `<div class="alert ${type}">
-            ${message}
-        </div>`;
+            if (result.success) {
+                window.location.href = "dashboard.html";
+            } else {
+                showAlert(result.message, "error");
+            }
+        });
 
-}
-
-</script>
+    </script>
 </body>
 </html>

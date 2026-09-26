@@ -1,6 +1,50 @@
 const USERS_KEY = "users";
 const SESSION_KEY = "session";
 const RESET_REQUESTS_KEY = "passwordResetRequests";
+const REMEMBER_KEY = "rememberedLogin";
+
+// Simple line-style eye icons used by the password show/hide toggle.
+const ICON_EYE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_EYE_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.71-1.06a3 3 0 1 1-4.24-4.24"/><path d="M6.61 6.61A18.42 18.42 0 0 0 1 12s4 8 11 8a9.26 9.26 0 0 0 5.39-1.61"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+// Roles the admin is allowed to create accounts for.
+const CREATABLE_ROLES = ["teacher", "staff", "student"];
+
+// Every account email must be a @gmail.com address. Used at login,
+// on the forgot-password request, and whenever the admin creates a
+// new account.
+const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+
+function isGmailEmail(email) {
+    return GMAIL_REGEX.test((email || "").trim());
+}
+
+// Merges changes into the active session, but only if it belongs to
+// userId, so the header/profile update without a fresh login.
+function updateSession(userId, changes) {
+
+    let session = getSession();
+
+    if (session && session.id === userId) {
+        let updated = JSON.stringify(Object.assign(session, changes));
+
+        // Write back to whichever storage is currently holding the
+        // session, so a "remembered" session stays remembered and a
+        // this-tab-only session stays that way.
+        if (localStorage.getItem(SESSION_KEY)) {
+            localStorage.setItem(SESSION_KEY, updated);
+        } else {
+            sessionStorage.setItem(SESSION_KEY, updated);
+        }
+    }
+}
+
+// Shows a message in the page's #alertBox (login + forgot-password).
+// The dashboard has its own alertMessage() in script.js.
+function showAlert(message, type) {
+    document.getElementById("alertBox").innerHTML =
+        `<div class="alert ${type}">${message}</div>`;
+}
 
 function getUsers() {
     return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
@@ -16,8 +60,22 @@ function findUserByEmail(email) {
     ) || null;
 }
 
+// Returns the pending reset requests. Requests whose account no longer
+// exists (the admin removed the user) are dropped here, so they can
+// never linger in the list or the nav badge.
 function getResetRequests() {
-    return JSON.parse(localStorage.getItem(RESET_REQUESTS_KEY)) || [];
+
+    let requests = JSON.parse(localStorage.getItem(RESET_REQUESTS_KEY)) || [];
+
+    let userIds = new Set(getUsers().map(u => u.id));
+
+    let live = requests.filter(r => userIds.has(r.userId));
+
+    if (live.length !== requests.length) {
+        saveResetRequests(live);
+    }
+
+    return live;
 }
 
 function saveResetRequests(requests) {
@@ -40,6 +98,14 @@ function resetPassword(userId, newPassword) {
 }
 
 function requestPasswordReset(email) {
+
+    if (!isGmailEmail(email)) {
+        return {
+            success: false,
+            message: "Please enter a valid @gmail.com email."
+        };
+    }
+
     let user = findUserByEmail(email);
 
     if (!user) {
@@ -55,8 +121,11 @@ function requestPasswordReset(email) {
         };
     }
 
+    let requestId = Date.now();
+    while (requests.some(r => r.id === requestId)) requestId++;
+
     requests.push({
-        id: Date.now(),
+        id: requestId,
         userId: user.id,
         name: user.name,
         email: user.email,
@@ -90,61 +159,96 @@ function resolvePasswordResetRequest(requestId, newPassword) {
     return { success: true };
 }
 
+// Makes sure the default admin exists. Also tidies up accounts that
+// were left over from the old self-registration flow: anything that
+// was still "pending" or "rejected" becomes "blocked" so the admin can
+// see it in Manage Users and either remove it or reactivate it.
 function seedAdmin() {
     let users = getUsers();
+    let changed = false;
 
     if (!users.some(u => u.role === "admin")) {
         users.push({
             id: 1,
             name: "System Administrator",
-            email: "admin@school.com",
+            email: "admin@gmail.com",
             password: "admin123",
             role: "admin",
             status: "approved"
         });
+        changed = true;
+    }
 
+    users.forEach(u => {
+        if (u.status === "pending" || u.status === "rejected") {
+            u.status = "blocked";
+            changed = true;
+        }
+    });
+
+    if (changed) {
         saveUsers(users);
     }
 }
 
-function registerUser(name, email, password, role, photo, faceVerified, faceDescriptor) {
-    let users = getUsers();
+// Admin-only: creates an account for a teacher, staff member or
+// student leader. There is no public sign-up, so this is the only
+// way a non-admin account comes into existence.
+function createUserAccount(name, email, password, role) {
 
-    if (users.some(u =>
-        u.email.toLowerCase() === email.toLowerCase()
-    )) {
+    name = (name || "").trim();
+    email = (email || "").trim();
+
+    if (!name || !email || !password) {
+        return { success: false, message: "Please fill in all fields." };
+    }
+
+    if (!isGmailEmail(email)) {
+        return { success: false, message: "Email must be a @gmail.com address." };
+    }
+
+    if (!CREATABLE_ROLES.includes(role)) {
+        return { success: false, message: "Please choose a valid role." };
+    }
+
+    if (password.length < 6) {
         return {
             success: false,
-            message: "Email is already registered."
+            message: "Password must be at least 6 characters."
         };
     }
 
-    let newUser = {
-        id: Date.now(),
+    if (findUserByEmail(email)) {
+        return {
+            success: false,
+            message: "An account with that email already exists."
+        };
+    }
+
+    let users = getUsers();
+
+    // Date.now() is the id, but bump it if two accounts are ever
+    // created in the same millisecond so ids stay unique.
+    let id = Date.now();
+    while (users.some(u => u.id === id)) id++;
+
+    users.push({
+        id: id,
         name: name,
         email: email,
         password: password,
         role: role,
         createdAt: Date.now(),
-        photo: photo || null,
-        faceVerified: !!faceVerified,
-        faceDescriptor: faceDescriptor || null,
-        status: "pending"
-    };
-
-    users.push(newUser);
+        photo: null,
+        status: "approved"
+    });
 
     saveUsers(users);
 
-    return {
-        success: true,
-        status: "pending",
-        message: "Registration submitted. Your account is pending admin approval before you can log in."
-    };
+    return { success: true };
 }
 
-// Updates a user's profile photo (used both by the registration
-// verification step and by the Profile tab later on).
+// Updates a user's profile photo (used by the Profile tab).
 function updateProfilePhoto(userId, dataUrl) {
 
     let users = getUsers();
@@ -159,23 +263,21 @@ function updateProfilePhoto(userId, dataUrl) {
 
     saveUsers(users);
 
-    // Keep the active session in sync so the new photo shows up
-    // immediately without requiring the user to log in again.
-    let session = getSession();
-
-    if (session && session.id === userId) {
-        session.photo = dataUrl;
-        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    }
+    updateSession(userId, { photo: dataUrl });
 
     return { success: true };
 }
 
-function loginUser(email, password) {
+function loginUser(email, password, remember) {
 
-    let user = getUsers().find(u =>
-        u.email.toLowerCase() === email.toLowerCase()
-    );
+    if (!isGmailEmail(email)) {
+        return {
+            success: false,
+            message: "Please enter a valid @gmail.com email."
+        };
+    }
+
+    let user = findUserByEmail(email);
 
     if (!user) {
         return {
@@ -191,55 +293,51 @@ function loginUser(email, password) {
         };
     }
 
-    let status = user.status || "approved";
-
-    if (status === "pending") {
-        return {
-            success: false,
-            message: "Your account is pending admin approval. Please check back soon."
-        };
-    }
-
-    if (status === "rejected") {
-        return {
-            success: false,
-            message: "Your registration was not approved. Please contact the admin office."
-        };
-    }
-
-    if (status === "blocked") {
+    if (user.status === "blocked") {
         return {
             success: false,
             message: "Your account has been blocked by the admin. Please contact the admin office."
         };
     }
 
-    localStorage.setItem(
-        SESSION_KEY,
-        JSON.stringify({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            photo: user.photo || null
-        })
-    );
+    let sessionData = JSON.stringify({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        photo: user.photo || null
+    });
 
-    return {
-        success: true,
-        user: user
-    };
+    // Remember me checked (default): session survives closing the
+    // browser, and the email/password are saved so the login form
+    // comes back pre-filled next time (even after logging out).
+    // Unchecked: session only lasts for this tab, and nothing is saved.
+    if (remember === false) {
+        sessionStorage.setItem(SESSION_KEY, sessionData);
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(REMEMBER_KEY);
+    } else {
+        localStorage.setItem(SESSION_KEY, sessionData);
+        sessionStorage.removeItem(SESSION_KEY);
+        localStorage.setItem(REMEMBER_KEY, JSON.stringify({ email: user.email, password: password }));
+    }
+
+    return { success: true };
+}
+
+// Returns the saved { email, password }, or null if "remember me"
+// hasn't been used / was cleared.
+function getRememberedLogin() {
+    return JSON.parse(localStorage.getItem(REMEMBER_KEY) || "null");
 }
 
 function getSession() {
     return JSON.parse(
-        localStorage.getItem(SESSION_KEY)
+        localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || null
     );
 }
 
 function requireAuth() {
-
-    seedAdmin();
 
     let session = getSession();
 
@@ -251,186 +349,103 @@ function requireAuth() {
     return session;
 }
 
+// Logging out ends the session but deliberately leaves any
+// remembered email/password in place, so "Remember me" still
+// pre-fills the login form and it's a one-click sign back in.
 function logout() {
     localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
     window.location.href = "login.html";
 }
 
-// Updates a user's password after verifying their current one.
-function changePassword(userId, currentPassword, newPassword) {
+// Updates a user's own login email and/or password (Profile tab).
+// changes = { email, currentPassword, newPassword }
+// The current password must be correct whenever something changes.
+function updateAccount(userId, changes) {
 
     let users = getUsers();
 
     let user = users.find(u => u.id === userId);
 
     if (!user) {
+        return { success: false, message: "User not found." };
+    }
+
+    let newEmail = (changes.email || "").trim() || user.email;
+    let newPassword = changes.newPassword || "";
+
+    let emailChanged = newEmail !== user.email;
+    let passwordChanged = newPassword.length > 0;
+
+    if (!emailChanged && !passwordChanged) {
+        return { success: false, message: "No changes to save." };
+    }
+
+    if (user.password !== changes.currentPassword) {
+        return { success: false, message: "Current password is incorrect." };
+    }
+
+    if (emailChanged) {
+
+        if (!isGmailEmail(newEmail)) {
+            return { success: false, message: "Email must be a @gmail.com address." };
+        }
+
+        let taken = users.some(u =>
+            u.id !== userId &&
+            u.email.toLowerCase() === newEmail.toLowerCase()
+        );
+
+        if (taken) {
+            return {
+                success: false,
+                message: "That email is already used by another account."
+            };
+        }
+    }
+
+    if (passwordChanged && newPassword.length < 6) {
         return {
             success: false,
-            message: "User not found."
+            message: "New password must be at least 6 characters."
         };
     }
 
-    if (user.password !== currentPassword) {
-        return {
-            success: false,
-            message: "Current password is incorrect."
-        };
-    }
+    let oldEmail = user.email;
 
-    user.password = newPassword;
+    if (emailChanged) user.email = newEmail;
+    if (passwordChanged) user.password = newPassword;
 
     saveUsers(users);
 
+    if (emailChanged) {
+
+        // Keep any open password-reset request pointing at the new email.
+        let requests = getResetRequests();
+
+        requests.forEach(r => {
+            if (r.userId === userId) r.email = newEmail;
+        });
+
+        saveResetRequests(requests);
+
+        updateSession(userId, { email: newEmail });
+    }
+
     return {
         success: true,
-        message: "Password updated successfully."
+        oldEmail: oldEmail,
+        newEmail: user.email,
+        emailChanged: emailChanged,
+        passwordChanged: passwordChanged
     };
 }
 
 seedAdmin();
 
-// ============================================================
-// Account trust / troll-signup detection
-//
-// This is a prototype, so there is no real backend to run email
-// verification, CAPTCHAs, or IP throttling. Instead we score each
-// account against a set of common troll/spam signup patterns so
-// the admin has something concrete to review before trusting an
-// account, rather than having to guess.
-// ============================================================
-
-const TROLL_NAME_BLOCKLIST = [
-    "test", "testing", "test123", "asdf", "asdfasdf", "asdasd",
-    "fake", "faketroll", "troll", "trolling", "trollface",
-    "abc", "abcabc", "abcd", "xxx", "xxxx", "idk", "idontknow",
-    "none", "n a", "na", "qwerty", "qwerty123", "admin",
-    "administrator", "user", "sample", "nobody", "anonymous",
-    "hacker", "haha", "lol", "lolol", "spam"
-];
-
-const KEYBOARD_MASH_PATTERNS = [
-    "qwert", "asdf", "zxcv", "12345", "09876", "wertyu", "sdfgh"
-];
-
-const DISPOSABLE_EMAIL_DOMAINS = [
-    "mailinator.com", "tempmail.com", "temp-mail.org",
-    "guerrillamail.com", "yopmail.com", "10minutemail.com",
-    "throwaway.email", "fakeinbox.com", "trashmail.com",
-    "getnada.com", "dispostable.com", "sharklasers.com",
-    "maildrop.cc"
-];
-
-const SCHOOL_EMAIL_DOMAINS = [];
-
-// Scores a single account against troll/spam signup heuristics.
-// Returns { score, level, flags[] }. Higher score = more suspicious.
-function analyzeAccountTrust(user, allUsers) {
-
-    let flags = [];
-    let score = 0;
-
-    let rawName = (user.name || "").trim();
-    let name = rawName.toLowerCase();
-    let nameNoSpace = name.replace(/\s+/g, "");
-
-    let email = (user.email || "").toLowerCase();
-    let atIndex = email.indexOf("@");
-    let localPart = atIndex > -1 ? email.slice(0, atIndex) : email;
-    let domain = atIndex > -1 ? email.slice(atIndex + 1) : "";
-
-    // Admin accounts are provisioned by the system, not self-registered.
-    if (user.role === "admin") {
-        return { score: 0, level: "low", flags: [] };
-    }
-
-    if (rawName.length > 0 && rawName.length < 3) {
-        flags.push("Unusually short name");
-        score += 15;
-    }
-
-    if (TROLL_NAME_BLOCKLIST.includes(nameNoSpace)) {
-        flags.push("Placeholder-style name");
-        score += 40;
-    }
-
-    if (/^(.)\1{2,}$/.test(nameNoSpace)) {
-        flags.push("Repetitive characters in name");
-        score += 35;
-    }
-
-    if (KEYBOARD_MASH_PATTERNS.some(p => nameNoSpace.includes(p))) {
-        flags.push("Keyboard-mash pattern in name");
-        score += 30;
-    }
-
-    if (
-        nameNoSpace.length >= 4 &&
-        /^[a-z]+$/.test(nameNoSpace) &&
-        !/[aeiou]/.test(nameNoSpace)
-    ) {
-        flags.push("No vowels — possibly random text");
-        score += 20;
-    }
-
-    if (domain && DISPOSABLE_EMAIL_DOMAINS.includes(domain)) {
-        flags.push("Disposable/temporary email domain");
-        score += 35;
-    }
-
-    if (SCHOOL_EMAIL_DOMAINS.length > 0 && domain && !SCHOOL_EMAIL_DOMAINS.includes(domain)) {
-        flags.push("Email domain does not match the school's official domain");
-        score += 25;
-    }
-
-    if (
-        localPart.length >= 5 &&
-        /^[a-z]*\d{4,}$/.test(localPart)
-    ) {
-        flags.push("Suspicious auto-generated-looking email");
-        score += 20;
-    }
-
-    // Signup burst: several accounts created within a few minutes
-    // of each other often indicates a spam/troll wave rather than
-    // organic registrations.
-    if (user.createdAt && Array.isArray(allUsers)) {
-
-        let windowMs = 3 * 60 * 1000;
-
-        let nearby = allUsers.filter(u =>
-            u.id !== user.id &&
-            u.createdAt &&
-            Math.abs(u.createdAt - user.createdAt) <= windowMs
-        );
-
-        if (nearby.length >= 2) {
-            flags.push("Part of a rapid signup burst");
-            score += 15;
-        }
-    }
-
-    // Photo verification at signup. This does not confirm identity —
-    // only that a photo was provided and, if the face-check model
-    // was available, that a face was clearly visible in it.
-    if (!user.photo) {
-        flags.push("No verification photo provided");
-        score += 25;
-    } else if (user.faceVerified === false) {
-        flags.push("Face not clearly detected in verification photo");
-        score += 20;
-    }
-
-    score = Math.min(score, 100);
-
-    let level = "low";
-    if (score >= 50) level = "high";
-    else if (score >= 20) level = "medium";
-
-    return { score, level, flags };
-}
 // Shared show/hide toggle for password fields across every page
-// (login, register, forgot-password, dashboard's Change Password
-// modal) since auth.js is loaded everywhere a password input is.
+// (login, forgot-password, dashboard's Create User and Profile forms)
+// since auth.js is loaded everywhere a password input is.
 function togglePasswordVisibility(btn, inputId) {
 
     let input = document.getElementById(inputId);
@@ -441,11 +456,11 @@ function togglePasswordVisibility(btn, inputId) {
 
     if (input.type === "password") {
         input.type = "text";
-        btn.textContent = "🙈";
+        btn.innerHTML = ICON_EYE_OFF;
         btn.setAttribute("aria-label", "Hide password");
     } else {
         input.type = "password";
-        btn.textContent = "👁️";
+        btn.innerHTML = ICON_EYE;
         btn.setAttribute("aria-label", "Show password");
     }
 }

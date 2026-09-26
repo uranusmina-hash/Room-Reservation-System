@@ -1,300 +1,494 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Room Reservation System</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-<link href="style.css" rel="stylesheet"/>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Reservation System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="style.css">
+    <script>if (localStorage.getItem("rr-theme") === "light") document.documentElement.setAttribute("data-theme", "light");</script>
 </head>
 <body>
-<div class="container">
-<!-- HEADER -->
-<div class="header">
-<a href="index.html" style="display:flex; align-items:center; gap:8px; text-decoration:none;">
-<span style="font-size:20px;">📚</span>
-<div>
-<h1 style="margin:0;">Room Reservation</h1>
-<small>School Management System</small>
-</div>
-</a>
-<div id="userBar"></div>
-</div>
-<div id="alertBox"></div>
-<!-- DASHBOARD NAV -->
-<nav class="dash-nav" id="dashNav">
-<button class="dash-nav-btn active" data-panel="overview" onclick="switchPanel('overview')">
-            🏠 Overview
-        </button>
-<button class="dash-nav-btn" data-panel="rooms" onclick="switchPanel('rooms')">
-            🏫 Rooms
-        </button>
-<button class="dash-nav-btn" data-panel="reserve" onclick="switchPanel('reserve')">
-            📝 Reserve
-        </button>
-<button class="dash-nav-btn" data-panel="reservations" onclick="switchPanel('reservations')">
-            📅 My Reservations
-        </button>
-<button class="dash-nav-btn" data-panel="profile" onclick="switchPanel('profile')">
-            👤 Profile
-        </button>
-<button class="dash-nav-btn admin-only" data-panel="manage-rooms" onclick="switchPanel('manage-rooms')" style="display:none;">
-            🏢 Manage Rooms
-        </button>
-<button class="dash-nav-btn admin-only" data-panel="manage-users" onclick="switchPanel('manage-users')" style="display:none;">
-            👥 Manage Users
-        </button>
-</nav>
-<div class="dash-panels">
-<!-- OVERVIEW -->
-<section class="panel active" id="panel-overview">
-<div class="bento">
-<div class="box tile-stats">
-<span class="stat-value" id="statRooms">0</span>
-<span class="stat-label">Total Rooms</span>
-</div>
-<div class="box tile-stats">
-<span class="stat-value" id="statAvailable">0</span>
-<span class="stat-label">Open Slots Today</span>
-</div>
-<div class="box tile-stats">
-<span class="stat-value" id="statPending">0</span>
-<span class="stat-label">Pending Reservations</span>
-</div>
-<div class="box tile-stats">
-<span class="stat-value" id="statApproved">0</span>
-<span class="stat-label">Approved Reservations</span>
-</div>
-</div>
-<div class="box">
-<h2>👋 Welcome</h2>
-<p class="note" style="margin-bottom:0;">
-                    Use the tabs above to browse rooms, make a reservation,
-                    check your booking history, or update your profile.
-                </p>
-</div>
-</section>
-<!-- ROOMS -->
-<section class="panel" id="panel-rooms">
-<div class="box">
-<h2>🏫 Rooms</h2>
-<p class="note">
+
+    <canvas class="bg-field" aria-hidden="true"></canvas>
+
+    <div class="app-shell">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <a class="sidebar-brand" href="index.html">
+                <span class="header-logo">📚</span>
+                <div>
+                    <h1>Room Reservation</h1>
+                    <small>School Management System</small>
+                </div>
+            </a>
+
+            <nav class="dash-nav" id="dashNav">
+                <button class="dash-nav-btn active" data-panel="overview" onclick="switchPanel('overview')">
+                    <span class="nav-icon">🏠</span><span class="nav-label">Overview</span>
+                </button>
+                <button class="dash-nav-btn" data-panel="rooms" onclick="switchPanel('rooms')">
+                    <span class="nav-icon">🏫</span><span class="nav-label">Rooms</span>
+                </button>
+                <button class="dash-nav-btn" data-panel="reserve" onclick="switchPanel('reserve')">
+                    <span class="nav-icon">📝</span><span class="nav-label">Reserve</span>
+                </button>
+                <button class="dash-nav-btn" data-panel="reservations" onclick="switchPanel('reservations')">
+                    <span class="nav-icon">📅</span><span class="nav-label" id="reservationsNavLabel">My Reservations</span>
+                </button>
+                <div class="nav-divider admin-only" style="display:none;"></div>
+                <div class="nav-section-label admin-only" style="display:none;">Administration</div>
+                <button class="dash-nav-btn admin-only" data-panel="manage-rooms" onclick="switchPanel('manage-rooms')" style="display:none;">
+                    <span class="nav-icon">🏢</span><span class="nav-label">Manage Rooms</span>
+                </button>
+                <button class="dash-nav-btn admin-only" data-panel="manage-users" onclick="switchPanel('manage-users')" style="display:none;">
+                    <span class="nav-icon">👥</span><span class="nav-label">Manage Users</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="settings-menu" id="settingsMenu">
+                    <div class="settings-popover" id="settingsPopover" role="menu">
+                        <button class="settings-item" type="button" role="menuitem" onclick="openProfileModal()">
+                            <span class="settings-item-icon">👤</span> Profile
+                        </button>
+                        <button class="theme-toggle settings-item-theme" type="button" role="menuitem" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+                            <span class="theme-toggle-thumb">🌙</span>
+                            <span class="theme-toggle-label">Appearance</span>
+                        </button>
+                        <button class="settings-item settings-item-danger" type="button" role="menuitem" onclick="logout()">
+                            <span class="settings-item-icon">🚪</span> Logout
+                        </button>
+                    </div>
+                    <button class="settings-trigger" type="button" onclick="toggleSettingsMenu(event)" aria-haspopup="true" aria-expanded="false" aria-label="Open settings menu">
+                        <span id="userBar"></span>
+                        <svg class="settings-gear" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+        <!-- MAIN COLUMN -->
+        <div class="main-col">
+
+            <!-- MOBILE TOPBAR -->
+            <div class="topbar">
+                <button class="menu-btn" type="button" onclick="toggleSidebar()" aria-label="Open menu">
+                    <span></span><span></span><span></span>
+                </button>
+                <a class="topbar-brand" href="index.html">
+                    <span class="header-logo">📚</span> Room Reservation
+                </a>
+            </div>
+
+            <div id="alertBox"></div>
+
+            <!-- OVERVIEW -->
+            <section class="panel active" id="panel-overview">
+                <div class="bento">
+                    <div class="box tile-stats stat-cyan">
+                        <div class="stat-icon">🏫</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statRooms">0</span>
+                            <span class="stat-label">Total Rooms</span>
+                        </div>
+                    </div>
+                    <div class="box tile-stats stat-green">
+                        <div class="stat-icon">🟢</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statAvailable">0</span>
+                            <span class="stat-label">Open Slots Today</span>
+                        </div>
+                    </div>
+                    <div class="box tile-stats stat-amber">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statPending">0</span>
+                            <span class="stat-label">Pending Reservations</span>
+                        </div>
+                    </div>
+                    <div class="box tile-stats stat-violet">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statApproved">0</span>
+                            <span class="stat-label">Approved Reservations</span>
+                        </div>
+                    </div>
+                    <div class="box tile-stats stat-slate">
+                        <div class="stat-icon">🚫</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statCancelled">0</span>
+                            <span class="stat-label">Cancelled Reservations</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="box insight-box">
+                    <h2>📊 Reservation Pulse</h2>
+                    <p class="note">How the current queue is split between pending and approved bookings.</p>
+                    <div class="insight-bar" id="insightBar">
+                        <div class="insight-seg insight-seg-pending" id="insightPending"></div>
+                        <div class="insight-seg insight-seg-approved" id="insightApproved"></div>
+                    </div>
+                    <div class="insight-legend">
+                        <span><i class="dot dot-pending"></i>Pending</span>
+                        <span><i class="dot dot-approved"></i>Approved</span>
+                    </div>
+                </div>
+
+                <div class="box">
+                    <h2>👋 Welcome</h2>
+                    <p class="note" style="margin-bottom:0;">
+                        Use the sidebar to browse rooms, make a reservation,
+                        check your booking history, or update your profile.
+                    </p>
+                </div>
+            </section>
+
+        <!-- ROOMS -->
+        <section class="panel" id="panel-rooms">
+            <div class="box">
+                <h2>🏫 Rooms</h2>
+                <p class="note">
                     Select a date to see room availability. Rooms are booked in
                     four fixed time blocks: 8:00–9:30 AM, 10:00–11:30 AM,
                     1:00–2:30 PM, and 3:00–5:00 PM.
                 </p>
-<label>Check Availability Date</label>
-<input id="availabilityDate" type="date"/>
-<div class="list-controls">
-<select id="roomFilter">
-<option value="all">All Rooms</option>
-<option value="available">Available Only</option>
-</select>
-<select id="roomSort">
-<option value="name">Sort: Name (A–Z)</option>
-<option value="capacity-desc">Sort: Capacity (High–Low)</option>
-<option value="capacity-asc">Sort: Capacity (Low–High)</option>
-</select>
-</div>
-<div class="room-grid" id="roomGrid"></div>
-<div id="roomPagination"></div>
-</div>
-</section>
-<!-- RESERVE -->
-<section class="panel" id="panel-reserve">
-<div class="box">
-<h2>📝 Reserve a Room</h2>
-<form id="bookingForm">
-<label>Room</label>
-<select id="room" required=""></select>
-<label>Date</label>
-<input id="date" required="" type="date"/>
-<label>Time Slot</label>
-<div class="slot-picker" id="slotPicker">
-<p class="note">
+
+                <label>Check Availability Date</label>
+                <input id="availabilityDate" type="date">
+
+                <div class="list-controls">
+                    <select id="roomFilter">
+                        <option value="all">All Rooms</option>
+                        <option value="available">Available Only</option>
+                    </select>
+                    <select id="roomSort">
+                        <option value="name">Sort: Name (A–Z)</option>
+                        <option value="capacity-desc">Sort: Capacity (High–Low)</option>
+                        <option value="capacity-asc">Sort: Capacity (Low–High)</option>
+                    </select>
+                </div>
+
+                <div class="room-grid" id="roomGrid"></div>
+                <div id="roomPagination"></div>
+            </div>
+        </section>
+
+        <!-- RESERVE -->
+        <section class="panel" id="panel-reserve">
+            <div class="box">
+                <h2>📝 Reserve a Room</h2>
+                <form id="bookingForm">
+                    <div id="reserveForWrap" style="display:none;">
+                        <label>Reserve For</label>
+                        <select id="reserveFor"></select>
+                        <p class="note">
+                            Pick the person this room is being reserved for.
+                            The reservation is approved right away and shows
+                            up in their Reservations tab.
+                        </p>
+                    </div>
+
+                    <label>Room</label>
+                    <select id="room" required></select>
+
+                    <label>Date</label>
+                    <input id="date" type="date" required>
+
+                    <label>Time Slot</label>
+                    <div class="slot-picker" id="slotPicker">
+                        <p class="note">
                             Choose a room and date to see available time slots.
                         </p>
-</div>
-<label>Purpose</label>
-<input id="purpose" placeholder="Example: Math Class" required="" type="text"/>
-<button class="btn success" type="submit">
+                    </div>
+
+                    <label>Purpose</label>
+                    <input id="purpose" type="text" placeholder="Example: Math Class" required>
+
+                    <button class="btn success" type="submit">
                         📅 Request Reservation
                     </button>
-</form>
-</div>
-</section>
-<!-- MY RESERVATIONS -->
-<section class="panel" id="panel-reservations">
-<div class="box">
-<h2>📅 Reservations</h2>
-<p class="note">
+                </form>
+            </div>
+        </section>
+
+        <!-- MY / ALL RESERVATIONS -->
+        <section class="panel" id="panel-reservations">
+            <div class="box">
+                <h2>📅 Reservations</h2>
+                <p class="note">
                     Pending reservations already occupy the
                     selected time until they are cancelled or rejected.
                 </p>
-<div class="list-controls">
-<select id="statusFilter">
-<option value="all">All Statuses</option>
-<option value="pending">Pending</option>
-<option value="approved">Approved</option>
-<option value="rejected">Rejected</option>
-<option value="cancelled">Cancelled</option>
-</select>
-<select id="sortOrder">
-<option value="newest">Sort: Newest First</option>
-<option value="oldest">Sort: Oldest First</option>
-</select>
-</div>
-<div id="bookingList"></div>
-<div id="bookingPagination"></div>
-</div>
-</section>
-<!-- PROFILE -->
-<section class="panel" id="panel-profile">
-<div class="box profile-box">
-<h2>👤 My Profile</h2>
-<div class="profile-photo-row">
-<div class="profile-avatar-frame" id="profileAvatarFrame">
-<span id="profileAvatarInitials">?</span>
-<img alt="Profile photo" id="profileAvatarImg" style="display:none;"/>
-</div>
-<div>
-<label class="btn photo-upload-label" for="profilePhotoInput">
-                            📁 Upload New Photo
-                        </label>
-<input accept="image/*" id="profilePhotoInput" style="display:none;" type="file"/>
-<p class="note" style="margin:8px 0 0;">
-                            This photo is also shown to admins for
-                            account verification.
-                        </p>
-</div>
-</div>
-<div class="profile-info">
-<div class="profile-info-row">
-<span class="profile-info-label">Full Name</span>
-<span id="profileName">—</span>
-</div>
-<div class="profile-info-row">
-<span class="profile-info-label">Email</span>
-<span id="profileEmail">—</span>
-</div>
-<div class="profile-info-row">
-<span class="profile-info-label">Role</span>
-<span id="profileRole">—</span>
-</div>
-</div>
-<button class="btn" onclick="openPasswordModal()" type="button">
-                    🔑 Change Password
-                </button>
-</div>
-</section>
-<!-- ADMIN: MANAGE ROOMS -->
-<section class="panel" id="panel-manage-rooms">
-<div class="box" id="adminBox">
-<h2 id="roomFormTitle">🏢 Add Room</h2>
-<form id="roomForm">
-<input id="roomName" placeholder="Room name" required="" type="text"/>
-<input id="capacity" placeholder="Capacity" required="" type="number"/>
-<input id="roomLocation" placeholder="Location (e.g. 2nd Floor, Main Building)" type="text"/>
-<select id="projector">
-<option value="true">
-                            Projector: Yes
-                        </option>
-<option value="false">
-                            Projector: No
-                        </option>
-</select>
-<button class="btn success" id="roomSubmitBtn" type="submit">
+
+                <div class="list-controls">
+                    <select id="statusFilter">
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select id="sortOrder">
+                        <option value="newest">Sort: Newest First</option>
+                        <option value="oldest">Sort: Oldest First</option>
+                    </select>
+                </div>
+
+                <div id="bookingList"></div>
+                <div id="bookingPagination"></div>
+            </div>
+        </section>
+
+        <!-- ADMIN: MANAGE ROOMS -->
+        <section class="panel" id="panel-manage-rooms">
+            <div class="box">
+                <h2 id="roomFormTitle">🏢 Add Room</h2>
+                <form id="roomForm">
+                    <input id="roomName" type="text" placeholder="Room name" required>
+                    <input id="capacity" type="number" placeholder="Capacity" required>
+                    <input id="roomLocation" type="text" placeholder="Location (e.g. 2nd Floor, Main Building)">
+                    <select id="projector">
+                        <option value="true">Projector: Yes</option>
+                        <option value="false">Projector: No</option>
+                    </select>
+
+                    <button class="btn success" id="roomSubmitBtn" type="submit">
                         Add Room
                     </button>
-<button class="btn" id="cancelEditBtn" onclick="cancelRoomEdit()" style="display:none;" type="button">
+                    <button class="btn" id="cancelEditBtn" type="button" onclick="cancelRoomEdit()" style="display:none;">
                         Cancel Edit
                     </button>
-</form>
-</div>
-</section>
-<!-- ADMIN: MANAGE USERS -->
-<section class="panel" id="panel-manage-users">
-<div class="box" id="resetRequestsBox" style="display:none;">
-<h2>🔑 Password Reset Requests</h2>
-<div id="resetRequestList"></div>
-</div>
-<div class="box" id="usersBox">
-<h2>👥 Manage Users</h2>
-<p class="note">
-                    Total registered accounts:
-                    <strong id="statUsers">0</strong>
-                    ·
-                    Pending approval:
-                    <strong id="statPendingUsers">0</strong>
-                    ·
-                    Flagged for review:
-                    <strong id="statFlagged">0</strong>
-</p>
-<div class="list-controls">
-<label class="checkbox-label">
-<input id="flaggedOnlyFilter" onchange="toggleFlaggedOnly()" type="checkbox"/>
-                    Show flagged accounts only
-                </label>
-<select id="userStatusFilter" onchange="filterUsersByStatus()">
-<option value="all">All accounts</option>
-<option value="pending">Pending approval</option>
-<option value="approved">Approved</option>
-<option value="rejected">Rejected</option>
-<option value="blocked">Blocked</option>
-</select>
-</div>
-<div id="userList"></div>
-<div id="userPagination"></div>
-</div>
-</section>
-</div>
-</div>
-<!-- ROOM DETAILS MODAL -->
-<div class="modal-overlay" id="roomModal" onclick="if(event.target===this) closeRoomModal()">
-<div class="modal-card">
-<button class="modal-close" onclick="closeRoomModal()" type="button">
-            ✕
-        </button>
-<div id="roomModalBody"></div>
-</div>
-</div>
-<!-- CHANGE PASSWORD MODAL -->
-<div class="modal-overlay" id="passwordModal" onclick="if(event.target===this) closePasswordModal()">
-<div class="modal-card">
-<button class="modal-close" onclick="closePasswordModal()" type="button">
-            ✕
-        </button>
-<h2>🔑 Change Password</h2>
-<form id="passwordForm">
-<label>Current Password</label>
-<div class="password-field">
-<input id="currentPassword" required="" type="password"/>
-<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'currentPassword')" type="button">👁️</button>
-</div>
-<label>New Password</label>
-<div class="password-field">
-<input id="newPassword" required="" type="password"/>
-<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'newPassword')" type="button">👁️</button>
-</div>
-<label>Confirm New Password</label>
-<div class="password-field">
-<input id="confirmPassword" required="" type="password"/>
-<button aria-label="Show password" class="password-toggle" onclick="togglePasswordVisibility(this, 'confirmPassword')" type="button">👁️</button>
-</div>
-<button class="btn success" type="submit">
-                Update Password
-            </button>
-</form>
-</div>
-</div>
-<script src="auth.js"></script>
-<script>
+                </form>
+            </div>
+        </section>
 
-const currentUser = requireAuth();
+        <!-- ADMIN: MANAGE USERS -->
+        <section class="panel" id="panel-manage-users">
+            <div class="box" id="resetRequestsBox" style="display:none;">
+                <h2>🔑 Password Reset Requests</h2>
+                <div id="resetRequestList"></div>
+                <div id="resetPagination"></div>
+            </div>
 
-</script>
-<script src="script.js"></script>
+            <div class="bento admin-stat-row">
+                <div class="box tile-stats stat-cyan admin-stat-tile">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statUsers">0</span>
+                        <span class="stat-label">Total Accounts</span>
+                    </div>
+                </div>
+                <div class="box tile-stats stat-rose admin-stat-tile">
+                    <div class="stat-icon">🚫</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statBlockedUsers">0</span>
+                        <span class="stat-label">Blocked Accounts</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="panel-heading-row">
+                    <h2>👥 User Accounts</h2>
+                    <button class="btn success" type="button" onclick="openCreateUserModal()">
+                        ➕ Create Account
+                    </button>
+                </div>
+
+                <div class="role-tabs" id="userRoleTabs"></div>
+
+                <div class="list-controls">
+                    <select id="userStatusFilter" onchange="filterUsersByStatus()">
+                        <option value="all">All statuses</option>
+                        <option value="approved">Active</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                </div>
+
+                <div id="userList"></div>
+                <div id="userPagination"></div>
+            </div>
+        </section>
+
+        </div><!-- /.main-col -->
+    </div><!-- /.app-shell -->
+
+    <!-- ROOM DETAILS MODAL -->
+    <div class="modal-overlay" id="roomModal" onclick="if (event.target === this) closeRoomModal()">
+        <div class="modal-card">
+            <button class="modal-close" type="button" onclick="closeRoomModal()">✕</button>
+            <div id="roomModalBody"></div>
+        </div>
+    </div>
+
+    <!-- PROFILE MODAL -->
+    <div class="modal-overlay" id="profileModal" onclick="if (event.target === this) closeProfileModal()">
+        <div class="modal-card">
+            <button class="modal-close" type="button" onclick="closeProfileModal()">✕</button>
+            <div class="modal-alert"></div>
+
+            <h2 id="profileHeading">👤 —</h2>
+
+            <div class="profile-photo-row">
+                <div class="profile-avatar-frame">
+                    <span id="profileAvatarInitials">?</span>
+                    <img id="profileAvatarImg" alt="Profile photo" style="display:none;">
+                </div>
+                <div>
+                    <label class="btn photo-upload-label" for="profilePhotoInput">
+                        📁 Upload New Photo
+                    </label>
+                    <input id="profilePhotoInput" type="file" accept="image/*" style="display:none;">
+                    <p class="note" style="margin:8px 0 0;">
+                        Your photo is shown next to your name.
+                    </p>
+                </div>
+            </div>
+
+            <div class="profile-info">
+                <div class="profile-info-row">
+                    <span class="profile-info-label">Current Email</span>
+                    <span id="profileCurrentEmail">—</span>
+                </div>
+            </div>
+
+            <form id="profileForm" autocomplete="off">
+                <label>New Email</label>
+                <input id="profileEmailInput" type="email" pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$" title="Enter a valid @gmail.com email" placeholder="Leave blank to keep your current email">
+
+                <label>New Password</label>
+                <div class="password-field">
+                    <input id="profileNewPassword" type="password" autocomplete="new-password" placeholder="Leave blank to keep your current password">
+                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'profileNewPassword')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+
+                <label>Confirm New Password</label>
+                <div class="password-field">
+                    <input id="profileConfirmPassword" type="password" autocomplete="new-password" placeholder="Re-enter new password">
+                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'profileConfirmPassword')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+
+                <label>Current Password</label>
+                <div class="password-field">
+                    <input id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Needed to save email or password changes">
+                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'profileCurrentPassword')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn success" type="submit">💾 Save Changes</button>
+                    <button class="btn" type="button" onclick="closeProfileModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CREATE USER MODAL -->
+    <div class="modal-overlay" id="createUserModal" onclick="if (event.target === this) closeCreateUserModal()">
+        <div class="modal-card">
+            <button class="modal-close" type="button" onclick="closeCreateUserModal()">✕</button>
+            <div class="modal-alert"></div>
+
+            <h2>➕ Create User Account</h2>
+            <p class="note">
+                Only accounts created here can sign in. Give the user
+                their email and temporary password — they can change
+                both from their Profile tab.
+            </p>
+
+            <form id="createUserForm" autocomplete="off">
+                <label>Full Name</label>
+                <input id="newUserName" type="text" placeholder="e.g. Maria Santos" required>
+
+                <label>Email</label>
+                <input id="newUserEmail" type="email" placeholder="name@gmail.com" pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$" title="Enter a valid @gmail.com email" required>
+
+                <label>Temporary Password</label>
+                <div class="password-field">
+                    <input id="newUserPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters" required>
+                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'newUserPassword')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+
+                <label>Role</label>
+                <select id="newUserRole">
+                    <option value="teacher">Teacher</option>
+                    <option value="staff">School Staff</option>
+                    <option value="student">Student Leader</option>
+                </select>
+
+                <div class="form-actions">
+                    <button class="btn success" type="submit">➕ Create Account</button>
+                    <button class="btn" type="button" onclick="closeCreateUserModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        const currentUser = requireAuth();
+    </script>
+    <script src="script.js"></script>
+    <script src="theme.js"></script>
+    <script src="bg-field.js"></script>
+
+    <!-- Mobile sidebar drawer + live stat-pulse bar. Purely additive UI
+         sugar — it only reads what script.js already renders, so it
+         can never break the underlying app logic. -->
+    <script>
+        function toggleSidebar(force) {
+            let open = typeof force === "boolean"
+                ? force
+                : !document.getElementById("sidebar").classList.contains("open");
+            document.getElementById("sidebar").classList.toggle("open", open);
+            document.getElementById("sidebarOverlay").classList.toggle("open", open);
+        }
+        function closeSidebar() { toggleSidebar(false); }
+
+        // Close the drawer whenever a nav item is tapped on mobile.
+        document.getElementById("dashNav").addEventListener("click", function (e) {
+            if (e.target.closest(".dash-nav-btn")) closeSidebar();
+        });
+
+        (function () {
+            let pendingEl = document.getElementById("statPending");
+            let approvedEl = document.getElementById("statApproved");
+            let barPending = document.getElementById("insightPending");
+            let barApproved = document.getElementById("insightApproved");
+
+            function syncInsightBar() {
+                if (!pendingEl || !approvedEl || !barPending || !barApproved) return;
+                let pending = parseInt(pendingEl.textContent, 10) || 0;
+                let approved = parseInt(approvedEl.textContent, 10) || 0;
+                let total = pending + approved;
+
+                if (total === 0) {
+                    barPending.style.width = "50%";
+                    barApproved.style.width = "50%";
+                    barPending.style.opacity = "0.35";
+                    barApproved.style.opacity = "0.35";
+                    return;
+                }
+
+                barPending.style.opacity = "1";
+                barApproved.style.opacity = "1";
+                barPending.style.width = ((pending / total) * 100).toFixed(1) + "%";
+                barApproved.style.width = ((approved / total) * 100).toFixed(1) + "%";
+            }
+
+            let observer = new MutationObserver(syncInsightBar);
+            if (pendingEl) observer.observe(pendingEl, { childList: true, characterData: true, subtree: true });
+            if (approvedEl) observer.observe(approvedEl, { childList: true, characterData: true, subtree: true });
+
+            syncInsightBar();
+            setTimeout(syncInsightBar, 300);
+        })();
+    </script>
 </body>
 </html>

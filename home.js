@@ -24,9 +24,7 @@
         if (session) {
 
             document
-                .querySelectorAll(
-                    'a[href="login.html"], a[href="register.html"]'
-                )
+                .querySelectorAll('a[href="login.html"]')
                 .forEach(function (el) {
                     el.textContent = "Go to Dashboard";
                     el.href = "dashboard.html";
