@@ -12,19 +12,10 @@
 </head>
 <body class="auth-page">
 
-    <div class="auth-bg" aria-hidden="true">
-        <span class="orb orb-1"></span>
-        <span class="orb orb-2"></span>
-        <span class="orb orb-3"></span>
-        <span class="orb orb-4"></span>
-    </div>
+    <div class="page-cover" aria-hidden="true"></div>
 
     <div class="container small-container">
-        <div class="auth-brand-row">
-            <a class="auth-brand" href="index.html">
-                <span class="auth-logo">📚</span>
-                <span class="auth-wordmark">Room Reservation</span>
-            </a>
+        <div class="auth-toolbar">
             <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
                 <span class="theme-toggle-thumb">🌙</span>
             </button>
@@ -33,43 +24,50 @@
         <div id="alertBox"></div>
 
         <div class="box auth-card">
-            <div class="auth-card-head">
-                <span class="auth-eyebrow">Welcome back</span>
-                <h2>Log in to your account</h2>
-                <p class="auth-sub">
-                    Reserve a school room in just a few clicks.
-                </p>
+            <div class="auth-card-hero" role="img" aria-label="CCIS crest">
+                <a class="auth-card-hero-link" href="index.html" aria-label="Room Reservation home"></a>
             </div>
 
-            <form id="loginForm">
-                <label>Email</label>
-                <input id="email" type="email" placeholder="you@gmail.com" pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$" title="Enter a valid @gmail.com email" required>
-
-                <label>Password</label>
-                <div class="password-field">
-                    <input id="password" type="password" placeholder="Password" required>
-                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'password')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <div class="auth-card-body">
+                <div class="auth-card-head tight">
+                    <span class="auth-eyebrow">Welcome back</span>
+                    <h2>Log in to your account</h2>
                 </div>
 
-                <label class="checkbox-field">
-                    <input id="rememberMe" type="checkbox" checked>
-                    <span class="checkbox-box"></span>
-                    <span class="checkbox-label">Remember me</span>
-                </label>
+                <p class="auth-sub auth-sub-center">
+                    Reserve a school room in just a few clicks.
+                </p>
 
-                <button class="btn success full-width" type="submit">Log In</button>
-            </form>
+                <form id="loginForm">
+                    <label>Email</label>
+                    <input id="email" type="email" placeholder="you@gmail.com" pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$" title="Enter a valid @gmail.com email" required>
 
-            <p class="auth-footer">
-                <a href="forgot-password.html">Forgot password?</a>
-            </p>
+                    <label>Password</label>
+                    <div class="password-field">
+                        <input id="password" type="password" placeholder="Password" required>
+                        <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'password')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                    </div>
 
-            <div class="auth-divider"></div>
+                    <div class="auth-row-between">
+                        <label class="checkbox-field">
+                            <input id="rememberMe" type="checkbox" checked>
+                            <span class="checkbox-box"></span>
+                            <span class="checkbox-label">Remember me</span>
+                        </label>
 
-            <p class="auth-footer">
-                Accounts are created by the school admin.
-                Contact the admin office if you need access.
-            </p>
+                        <a class="auth-inline-link" href="forgot-password.html">Forgot password?</a>
+                    </div>
+
+                    <button class="btn success full-width" type="submit">Log In</button>
+                </form>
+
+                <div class="auth-divider"></div>
+
+                <p class="auth-footer">
+                    Accounts are created by the school admin.
+                    Contact the admin office if you need access.
+                </p>
+            </div>
         </div>
     </div>
 

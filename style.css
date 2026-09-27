@@ -1,25 +1,26 @@
 /* ============================================================
-   Room Reservation — "Nightgrid" theme
-   A balanced mid-dark slate base (not black, not white) with
-   glass panels and electric cyan / violet / magenta accents.
+   Room Reservation — "CCIS Gold" theme
+   Built around the College of Computing and Information Sciences
+   brand: deep navy base, gold as the one vivid accent, with the
+   seal's green and red as supporting status colors.
    ============================================================ */
 
 :root {
     /* Page base */
-    --bg-0: #16203a;
-    --bg-1: #1c2a4d;
+    --bg-0: #101b33;
+    --bg-1: #1b2c4e;
 
     /* Ambient background glow (muted, low-saturation — page atmosphere) */
-    --field-cyan: #123244;
-    --field-violet: #201d47;
+    --field-cyan: #2e2410;
+    --field-violet: #16233f;
 
     /* Vivid accent swatches (icons, small orbs, gradients) */
-    --swatch-cyan: #22d3ee;
-    --swatch-teal: #2dd4bf;
-    --swatch-violet: #8b5cf6;
-    --swatch-magenta: #ec4899;
-    --avatar-a: #0e7490;
-    --avatar-b: #4338ca;
+    --swatch-cyan: #f5b301;
+    --swatch-teal: #37b36a;
+    --swatch-violet: #4a6fa5;
+    --swatch-magenta: #e4572e;
+    --avatar-a: #f5b301;
+    --avatar-b: #1b3a6b;
 
     /* Surfaces */
     --surface: rgba(255, 255, 255, 0.055);
@@ -31,16 +32,17 @@
     --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 44px rgba(2, 6, 16, 0.45);
 
     /* Text */
-    --ink: #eaf2ff;
-    --ink-dim: #9fb0cc;
-    --ink-faint: #7c8db0;
+    --ink: #fff7e6;
+    --ink-dim: #c9d2e8;
+    --ink-faint: #8c99bc;
 
-    /* Accent (electric cyan) */
-    --accent: #22d3ee;
-    --accent-bright: #67e8f9;
-    --accent-soft: rgba(34, 211, 238, 0.16);
-    --accent-line: rgba(34, 211, 238, 0.4);
-    --on-accent: #062230;
+    /* Accent (CCIS gold) */
+    --accent: #f5b301;
+    --accent-bright: #ffcb3d;
+    --accent-soft: rgba(245, 179, 1, 0.18);
+    --accent-line: rgba(245, 179, 1, 0.42);
+    --accent-glow-rgb: 245, 179, 1;
+    --on-accent: #14213d;
 
     /* Status: solid = dots/borders, ink = text, bg/border = chips */
     --ok: #34d399;
@@ -48,15 +50,15 @@
     --ok-bg: rgba(52, 211, 153, 0.16);
     --ok-border: rgba(52, 211, 153, 0.4);
 
-    --warn: #fbbf24;
-    --warn-ink: #fcd34d;
-    --warn-bg: rgba(251, 191, 36, 0.16);
-    --warn-border: rgba(251, 191, 36, 0.4);
+    --warn: #fb923c;
+    --warn-ink: #fdba74;
+    --warn-bg: rgba(251, 146, 60, 0.16);
+    --warn-border: rgba(251, 146, 60, 0.4);
 
-    --danger: #fb7185;
-    --danger-ink: #fca5b1;
-    --danger-bg: rgba(251, 113, 133, 0.16);
-    --danger-border: rgba(251, 113, 133, 0.4);
+    --danger: #f0555a;
+    --danger-ink: #ff8b8f;
+    --danger-bg: rgba(240, 85, 90, 0.16);
+    --danger-border: rgba(240, 85, 90, 0.4);
 
     --radius-lg: 22px;
     --radius-md: 14px;
@@ -66,62 +68,78 @@
     --font-body: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
 
     /* Chrome that differs meaningfully between themes */
-    --nav-bg: rgba(18, 26, 48, 0.75);
-    --grid-line: rgba(34, 211, 238, 0.05);
+    --nav-bg: rgba(16, 27, 51, 0.75);
+    --grid-line: rgba(245, 179, 1, 0.05);
     --scheme: dark;
+
+    /* Homepage hero (theme-reactive gradient) */
+    --hero-bg: linear-gradient(120deg, #ffd54a 0%, #f5b301 30%, #e8a400 52%, #1b3a6b 82%, #101b33 100%);
+    --hero-wedge-a: #2e8b57;
+    --hero-wedge-b: #101b33;
+
+    /* CCIS building photo, used behind login / forgot-password / dashboard */
+    --page-cover-overlay: linear-gradient(180deg, rgba(16, 27, 51, 0.95) 0%, rgba(16, 27, 51, 0.88) 38%, rgba(16, 27, 51, 0.62) 72%, rgba(16, 27, 51, 0.4) 100%);
 }
 
 /* ---------- Light theme ---------- */
 :root[data-theme="light"] {
-    --bg-0: #e4f5f7;
-    --bg-1: #ece9fb;
+    --bg-0: #fff9ec;
+    --bg-1: #eaf0fb;
 
-    --field-cyan: rgba(34, 211, 238, 0.24);
-    --field-violet: rgba(139, 92, 246, 0.2);
+    --field-cyan: rgba(245, 179, 1, 0.2);
+    --field-violet: rgba(27, 58, 107, 0.14);
 
-    --swatch-cyan: #0891b2;
-    --swatch-teal: #0d9488;
-    --swatch-violet: #7c3aed;
-    --swatch-magenta: #db2777;
-    --avatar-a: #0e7490;
-    --avatar-b: #4338ca;
+    --swatch-cyan: #c98a00;
+    --swatch-teal: #1e8e52;
+    --swatch-violet: #1b3a6b;
+    --swatch-magenta: #c0392b;
+    --avatar-a: #f5b301;
+    --avatar-b: #1b3a6b;
 
     --surface: rgba(255, 255, 255, 0.66);
-    --surface-solid: #fdfeff;
-    --tint: rgba(8, 145, 178, 0.055);
-    --tint-strong: rgba(8, 145, 178, 0.1);
-    --line: rgba(15, 23, 42, 0.11);
-    --line-strong: rgba(15, 23, 42, 0.2);
+    --surface-solid: #fffdf6;
+    --tint: rgba(20, 33, 61, 0.05);
+    --tint-strong: rgba(20, 33, 61, 0.09);
+    --line: rgba(20, 33, 61, 0.12);
+    --line-strong: rgba(20, 33, 61, 0.22);
     --shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 20px 44px rgba(30, 41, 59, 0.12);
 
-    --ink: #10182b;
-    --ink-dim: #4b5674;
+    --ink: #14213d;
+    --ink-dim: #46527a;
     --ink-faint: #6b7695;
 
-    --accent: #0891b2;
-    --accent-bright: #06b6d4;
-    --accent-soft: rgba(8, 145, 178, 0.12);
-    --accent-line: rgba(8, 145, 178, 0.35);
-    --on-accent: #ffffff;
+    --accent: #e8a400;
+    --accent-bright: #f5b301;
+    --accent-soft: rgba(232, 164, 0, 0.14);
+    --accent-line: rgba(232, 164, 0, 0.38);
+    --accent-glow-rgb: 232, 164, 0;
+    --on-accent: #14213d;
 
-    --ok: #059669;
-    --ok-ink: #047857;
-    --ok-bg: rgba(5, 150, 105, 0.12);
-    --ok-border: rgba(5, 150, 105, 0.35);
+    --ok: #1e8e52;
+    --ok-ink: #146b3d;
+    --ok-bg: rgba(30, 142, 82, 0.12);
+    --ok-border: rgba(30, 142, 82, 0.35);
 
-    --warn: #d97706;
-    --warn-ink: #b45309;
-    --warn-bg: rgba(217, 119, 6, 0.12);
-    --warn-border: rgba(217, 119, 6, 0.35);
+    --warn: #c2660a;
+    --warn-ink: #9a4f06;
+    --warn-bg: rgba(194, 102, 10, 0.12);
+    --warn-border: rgba(194, 102, 10, 0.35);
 
-    --danger: #e11d48;
-    --danger-ink: #be123c;
-    --danger-bg: rgba(225, 29, 72, 0.12);
-    --danger-border: rgba(225, 29, 72, 0.35);
+    --danger: #c0392b;
+    --danger-ink: #9a2e22;
+    --danger-bg: rgba(192, 57, 43, 0.12);
+    --danger-border: rgba(192, 57, 43, 0.35);
 
-    --nav-bg: rgba(240, 249, 251, 0.78);
-    --grid-line: rgba(8, 145, 178, 0.08);
+    --nav-bg: rgba(255, 249, 236, 0.82);
+    --grid-line: rgba(232, 164, 0, 0.08);
     --scheme: light;
+
+    /* Homepage hero — softer, airier version of the same gold/navy story */
+    --hero-bg: linear-gradient(120deg, #fff6e0 0%, #ffe066 28%, #f5b301 55%, #a9c0e6 82%, #eef3fb 100%);
+    --hero-wedge-a: #4fae7a;
+    --hero-wedge-b: #6b87b3;
+
+    --page-cover-overlay: linear-gradient(180deg, rgba(255, 249, 236, 0.94) 0%, rgba(255, 249, 236, 0.85) 38%, rgba(234, 240, 251, 0.58) 72%, rgba(234, 240, 251, 0.34) 100%);
 }
 
 *,
@@ -187,18 +205,6 @@ body {
 
 :root[data-theme="light"] .theme-toggle-thumb {
     transform: translateX(20px);
-}
-
-.auth-brand-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 22px;
-}
-
-.auth-brand-row .auth-brand {
-    margin-bottom: 0;
 }
 
 /* Ambient glow, pinned to the viewport (not body's background-attachment:
@@ -297,6 +303,17 @@ body.auth-page {
     padding: 32px 0;
 }
 
+/* ---------- CCIS building photo (login / forgot-password / dashboard) ---------- */
+
+.page-cover {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    pointer-events: none;
+    background: var(--page-cover-overlay), url("assets/ccis-cover.jpg") center 30%/cover no-repeat;
+    transition: background 0.25s ease;
+}
+
 /* ---------- Ambient glow background (landing + auth pages) ---------- */
 
 .auth-bg {
@@ -373,8 +390,33 @@ body.auth-page {
 /* ---------- Auth layout (login / forgot password) ---------- */
 
 .box.auth-card {
-    padding: 34px 30px;
+    padding: 0;
+    overflow: hidden;
     box-shadow: var(--shadow);
+}
+
+.auth-card-body {
+    padding: 26px 30px 34px;
+}
+
+/* Hero band: the CCIS crest as the card's own header background —
+   the brand gradient behind it, the logo watermarked into it (its
+   white backing multiplied away, same trick used on .auth-logo img),
+   and a fade at the bottom so it melts into the card body below
+   instead of ending in a hard edge. */
+.auth-card-hero {
+    position: relative;
+    height: 132px;
+    background:
+        linear-gradient(180deg, rgba(16, 27, 51, 0) 0%, var(--surface-solid) 92%),
+        url("assets/ccis-logo.png") center 34%/112px auto no-repeat,
+        var(--hero-bg);
+    background-blend-mode: normal, multiply, normal;
+}
+
+.auth-card-hero-link {
+    position: absolute;
+    inset: 0;
 }
 
 .auth-brand {
@@ -391,6 +433,24 @@ body.auth-page {
     line-height: 1;
 }
 
+.auth-logo,
+.header-logo {
+    display: inline-flex;
+    isolation: isolate;
+}
+
+.auth-logo img,
+.header-logo img {
+    height: 26px;
+    width: auto;
+    display: block;
+    mix-blend-mode: multiply;
+}
+
+.sidebar-brand .header-logo img {
+    height: 30px;
+}
+
 .auth-wordmark {
     font-family: var(--font-display);
     font-weight: 600;
@@ -401,6 +461,21 @@ body.auth-page {
 
 .auth-card-head {
     margin-bottom: 24px;
+}
+
+.auth-card-head.tight {
+    margin-bottom: 6px;
+}
+
+.auth-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+}
+
+.auth-sub-center {
+    text-align: center;
+    margin-bottom: 22px;
 }
 
 .auth-eyebrow {
@@ -473,12 +548,17 @@ body.auth-page .box.auth-card {
 }
 
 @media (max-width: 480px) {
-    .box.auth-card {
-        padding: 26px 20px;
+    .auth-card-body {
+        padding: 22px 20px 26px;
     }
 
     .box.auth-card .auth-card-head h2 {
         font-size: 22px;
+    }
+
+    .auth-card-hero {
+        height: 104px;
+        background-size: auto, 88px auto, auto;
     }
 
     .auth-brand {
@@ -515,10 +595,10 @@ body.auth-page .box.auth-card {
     position: sticky;
     top: 0;
     height: 100vh;
-    background: linear-gradient(180deg, rgba(34, 211, 238, 0.07), rgba(139, 92, 246, 0.05)), var(--surface);
+    background: linear-gradient(180deg, rgba(var(--accent-glow-rgb), 0.07), rgba(27, 58, 107, 0.05)), var(--surface);
     border-right: 1px solid var(--line);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 20;
 }
 
@@ -601,7 +681,7 @@ body.auth-page .box.auth-card {
 .sidebar .dash-nav-btn.active {
     background: var(--accent);
     color: var(--on-accent);
-    box-shadow: 0 8px 18px rgba(34, 211, 238, 0.28);
+    box-shadow: 0 8px 18px rgba(var(--accent-glow-rgb), 0.28);
 }
 
 .sidebar .dash-nav-btn.active::before {
@@ -784,8 +864,8 @@ body.auth-page .box.auth-card {
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .menu-btn {
@@ -1015,11 +1095,11 @@ body.auth-page .box.auth-card {
 }
 
 /* One accent per stat card */
-.tile-stats.stat-cyan   { --tile-accent: var(--swatch-cyan);    --tile-accent-soft: rgba(34, 211, 238, 0.14); --tile-accent-line: rgba(34, 211, 238, 0.4); background: rgba(34, 211, 238, 0.07); border-color: rgba(34, 211, 238, 0.28); }
+.tile-stats.stat-cyan   { --tile-accent: var(--swatch-cyan);    --tile-accent-soft: rgba(245, 179, 1, 0.14); --tile-accent-line: rgba(245, 179, 1, 0.4); background: rgba(245, 179, 1, 0.08); border-color: rgba(245, 179, 1, 0.3); }
 .tile-stats.stat-green  { --tile-accent: var(--ok);             --tile-accent-soft: rgba(52, 211, 153, 0.14); --tile-accent-line: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.07); border-color: rgba(52, 211, 153, 0.28); }
-.tile-stats.stat-amber  { --tile-accent: var(--warn);           --tile-accent-soft: rgba(251, 191, 36, 0.14); --tile-accent-line: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.07); border-color: rgba(251, 191, 36, 0.28); }
-.tile-stats.stat-violet { --tile-accent: var(--swatch-violet);  --tile-accent-soft: rgba(139, 92, 246, 0.14); --tile-accent-line: rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.07); border-color: rgba(139, 92, 246, 0.28); }
-.tile-stats.stat-rose   { --tile-accent: var(--danger);         --tile-accent-soft: rgba(251, 113, 133, 0.14); --tile-accent-line: rgba(251, 113, 133, 0.4); background: rgba(251, 113, 133, 0.07); border-color: rgba(251, 113, 133, 0.28); }
+.tile-stats.stat-amber  { --tile-accent: var(--warn);           --tile-accent-soft: rgba(251, 146, 60, 0.14); --tile-accent-line: rgba(251, 146, 60, 0.4); background: rgba(251, 146, 60, 0.07); border-color: rgba(251, 146, 60, 0.28); }
+.tile-stats.stat-violet { --tile-accent: var(--swatch-violet);  --tile-accent-soft: rgba(27, 58, 107, 0.14); --tile-accent-line: rgba(27, 58, 107, 0.4); background: rgba(27, 58, 107, 0.07); border-color: rgba(27, 58, 107, 0.28); }
+.tile-stats.stat-rose   { --tile-accent: var(--danger);         --tile-accent-soft: rgba(240, 85, 90, 0.14); --tile-accent-line: rgba(240, 85, 90, 0.4); background: rgba(240, 85, 90, 0.07); border-color: rgba(240, 85, 90, 0.28); }
 .tile-stats.stat-slate  { --tile-accent: var(--ink-faint);      --tile-accent-soft: var(--tint-strong);       --tile-accent-line: var(--line-strong);      background: var(--tint); border-color: var(--line-strong); }
 
 .stat-value {
@@ -1136,8 +1216,7 @@ body.auth-page .box.auth-card {
         font-size: 22px;
     }
 
-    .room-grid,
-    .slot-grid {
+    .room-grid {
         grid-template-columns: 1fr;
     }
 
@@ -1241,7 +1320,7 @@ input::placeholder {
 input:focus,
 select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.22);
+    box-shadow: 0 0 0 3px rgba(var(--accent-glow-rgb), 0.22);
 }
 
 /* Native browser controls need an explicit dark color-scheme, or
@@ -1304,6 +1383,29 @@ input[type="time"] {
     font-size: 13px;
     font-weight: 600;
     color: var(--ink-dim);
+}
+
+.auth-row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 2px 0 6px;
+}
+
+.auth-row-between .checkbox-field {
+    margin: 0;
+}
+
+.auth-inline-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.auth-inline-link:hover {
+    text-decoration: underline;
 }
 
 .checkbox-field input {
@@ -1396,7 +1498,7 @@ input[type="time"] {
 .btn.success:hover {
     background: var(--accent-bright);
     border-color: var(--accent-bright);
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.45);
+    box-shadow: 0 0 20px rgba(var(--accent-glow-rgb), 0.45);
 }
 
 .btn.danger {
@@ -1406,8 +1508,8 @@ input[type="time"] {
 }
 
 .btn.danger:hover {
-    background: #fbd3de;
-    border-color: #ee9db2;
+    background: color-mix(in srgb, var(--danger) 22%, transparent);
+    border-color: color-mix(in srgb, var(--danger) 55%, transparent);
 }
 
 .btn.ghost {
@@ -1476,7 +1578,7 @@ input[type="time"] {
 .room-card:hover {
     border-color: var(--accent-line);
     background: var(--surface-solid);
-    box-shadow: 0 6px 18px rgba(2, 6, 16, 0.35), 0 0 0 1px rgba(34, 211, 238, 0.08);
+    box-shadow: 0 6px 18px rgba(2, 6, 16, 0.35), 0 0 0 1px rgba(var(--accent-glow-rgb), 0.08);
 }
 
 .room-card h3 {
@@ -1563,75 +1665,70 @@ input[type="time"] {
     border-color: var(--danger-border);
 }
 
-/* ---------- Slot picker ---------- */
-
-.slot-picker {
+.time-range-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
     margin-bottom: 6px;
 }
 
-.slot-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
+.time-sublabel {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-bottom: 4px;
+    display: block;
 }
 
-.slot-option {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 11px 12px;
+.time-availability-msg {
+    padding: 10px 12px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--line);
     font-size: 12px;
-    cursor: pointer;
+    margin-bottom: 12px;
     background: var(--tint);
-    transition: transform 0.1s ease, border-color 0.15s ease;
 }
 
-.slot-option.available {
+.time-availability-msg.ok {
     background: var(--ok-bg);
     color: var(--ok-ink);
     border-color: var(--ok-border);
 }
 
-.slot-option.available:hover {
-    transform: translateY(-1px);
-    border-color: var(--ok);
-}
-
-.slot-option.selected {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
-}
-
-.slot-option.disabled {
-    cursor: not-allowed;
-    opacity: 0.9;
-}
-
-.slot-option.pending {
-    background: var(--warn-bg);
-    color: var(--warn-ink);
-    border-color: var(--warn-border);
-}
-
-.slot-option.approved {
+.time-availability-msg.conflict {
     background: var(--danger-bg);
     color: var(--danger-ink);
     border-color: var(--danger-border);
 }
 
-.slot-time {
-    font-weight: 700;
+.time-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
 }
 
-.slot-status {
-    font-size: 11px;
-}
-
-.slot-purpose {
-    font-size: 11px;
+.time-suggestions span {
+    font-size: 12px;
     opacity: 0.85;
+}
+
+.time-suggestion-chip {
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--ok-border);
+    background: var(--ok-bg);
+    color: var(--ok-ink);
+    transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.time-suggestion-chip:hover {
+    transform: translateY(-1px);
+    border-color: var(--ok);
 }
 
 /* ---------- Reservations list ---------- */
@@ -2011,7 +2108,7 @@ input[type="time"] {
     margin-left: 6px;
     padding: 1px 6px;
     border-radius: 999px;
-    background: #e11d48;
+    background: var(--danger);
     color: #ffffff;
     font-size: 10px;
     font-weight: 700;
@@ -2197,9 +2294,13 @@ input[type="time"] {
 }
 
 /* ---------- Hero ---------- */
+/* A bold, faculty-yellow hero: gold dominates, with a navy sweep and
+   a thin green seam standing in for the cover photo we removed. */
 
 .hero {
     --nav-h: 78px;
+    position: relative;
+    z-index: 1;
     max-width: 2000px;
     margin: 0 auto;
     padding: 40px 5vw;
@@ -2209,6 +2310,39 @@ input[type="time"] {
     grid-template-columns: 1fr 1fr;
     gap: 48px;
     align-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+        radial-gradient(1200px 700px at 8% -10%, rgba(255, 255, 255, 0.35) 0%, transparent 55%),
+        var(--hero-bg);
+    transition: background 0.25s ease;
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    right: -6%;
+    width: 46%;
+    height: 100%;
+    background: var(--hero-wedge-a);
+    clip-path: polygon(38% 0, 62% 0, 24% 100%, 0% 100%);
+    opacity: 0.9;
+    transition: background 0.25s ease;
+}
+
+.hero::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    right: -10%;
+    width: 46%;
+    height: 100%;
+    background: var(--hero-wedge-b);
+    clip-path: polygon(52% 0, 78% 0, 40% 100%, 14% 100%);
+    transition: background 0.25s ease;
 }
 
 .hero h1 {
@@ -2217,8 +2351,8 @@ input[type="time"] {
     font-size: 52px;
     line-height: 1.1;
     margin: 0 0 20px;
-    color: var(--ink);
-    background: linear-gradient(100deg, var(--ink) 30%, var(--accent) 45%, var(--swatch-violet) 55%, var(--ink) 70%);
+    color: #14213d;
+    background: linear-gradient(100deg, #14213d 30%, #2e8b57 45%, #14213d 55%, #14213d 70%);
     background-size: 220% auto;
     background-position: 0% center;
     -webkit-background-clip: text;
@@ -2238,13 +2372,13 @@ input[type="time"] {
         animation: none;
         background: none;
         -webkit-text-fill-color: currentColor;
-        color: var(--ink);
+        color: #14213d;
     }
 }
 
 .hero-sub {
     font-size: 17px;
-    color: var(--ink-dim);
+    color: rgba(20, 33, 61, 0.78);
     line-height: 1.65;
     margin: 0 0 32px;
     max-width: 440px;
@@ -2261,6 +2395,34 @@ input[type="time"] {
     margin-top: 0;
     padding: 13px 24px;
     font-size: 14.5px;
+}
+
+.hero-ctas .btn.success {
+    background: #14213d;
+    border-color: #14213d;
+    color: #fff7e6;
+}
+
+.hero-ctas .btn.success:hover {
+    background: #1b3a6b;
+    border-color: #1b3a6b;
+    box-shadow: 0 8px 22px rgba(20, 33, 61, 0.35);
+}
+
+.hero-ctas .btn.ghost {
+    border-color: rgba(20, 33, 61, 0.45);
+    color: #14213d;
+}
+
+.hero-ctas .btn.ghost:hover {
+    background: rgba(20, 33, 61, 0.08);
+}
+
+@media (max-width: 900px) {
+    .hero::before,
+    .hero::after {
+        opacity: 0.5;
+    }
 }
 
 .hero-art {
@@ -2607,13 +2769,13 @@ input[type="time"] {
     background-color: rgba(10, 16, 32, 0.55);
     background-image: repeating-radial-gradient(
         circle at 50% 50%,
-        rgba(34, 211, 238, 0.2) 0px,
-        rgba(34, 211, 238, 0.2) 1px,
+        rgba(245, 179, 1, 0.2) 0px,
+        rgba(245, 179, 1, 0.2) 1px,
         transparent 1px,
         transparent 38px
     );
-    border: 1px solid rgba(34, 211, 238, 0.3);
-    box-shadow: 0 50px 80px rgba(2, 6, 16, 0.5), 0 0 60px rgba(34, 211, 238, 0.08) inset;
+    border: 1px solid rgba(245, 179, 1, 0.3);
+    box-shadow: 0 50px 80px rgba(2, 6, 16, 0.5), 0 0 60px rgba(245, 179, 1, 0.08) inset;
 }
 
 /* ---------- Room block ---------- */
@@ -2638,11 +2800,11 @@ input[type="time"] {
 }
 
 .room[data-s="open"],
-.slot[data-s="open"]    { --c: 16, 185, 129;  --lift: 0px; }
+.slot[data-s="open"]    { --c: 52, 211, 153;  --lift: 0px; }
 .room[data-s="pending"],
-.slot[data-s="pending"] { --c: 245, 158, 11;  --lift: 18px; }
+.slot[data-s="pending"] { --c: 251, 146, 60;  --lift: 18px; }
 .room[data-s="booked"],
-.slot[data-s="booked"]  { --c: 244, 63, 94;   --lift: 0px; }
+.slot[data-s="booked"]  { --c: 240, 85, 90;   --lift: 0px; }
 
 .face {
     position: absolute;
@@ -2769,7 +2931,7 @@ input[type="time"] {
     padding: 0;
     list-style: none;
     font-size: 12.5px;
-    color: var(--ink-dim);
+    color: rgba(255, 247, 230, 0.85);
 }
 
 .scene-legend i {

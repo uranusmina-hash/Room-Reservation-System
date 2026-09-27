@@ -91,8 +91,36 @@ function resetPassword(userId, newPassword) {
     }
 
     user.password = newPassword;
+    // An admin just set this password (fulfilling a reset request),
+    // so treat it like a fresh admin-created account: nag the user
+    // to pick their own password on next login.
+    user.mustChangePassword = true;
 
     saveUsers(users);
+
+    return { success: true };
+}
+
+// Used by the blocking "set your own password" modal that appears
+// right after login when mustChangePassword is true. No current-
+// password check here: the user already authenticated this session
+// with the admin-set password, so re-asking for it would just be
+// friction for no extra security.
+function forceChangePassword(userId, newPassword) {
+
+    let users = getUsers();
+    let user = users.find(u => u.id === userId);
+
+    if (!user) {
+        return { success: false, message: "User not found." };
+    }
+
+    user.password = newPassword;
+    user.mustChangePassword = false;
+
+    saveUsers(users);
+
+    updateSession(userId, { mustChangePassword: false });
 
     return { success: true };
 }
@@ -152,6 +180,22 @@ function resolvePasswordResetRequest(requestId, newPassword) {
 
     if (!result.success) {
         return result;
+    }
+
+    saveResetRequests(requests.filter(r => r.id !== requestId));
+
+    return { success: true };
+}
+
+// Clears a reset request without changing the user's password — for
+// requests that were submitted by accident (e.g. an accidental tap
+// on "Forgot password?").
+function dismissPasswordResetRequest(requestId) {
+    let requests = getResetRequests();
+    let request = requests.find(r => r.id === requestId);
+
+    if (!request) {
+        return { success: false, message: "Request not found." };
     }
 
     saveResetRequests(requests.filter(r => r.id !== requestId));
@@ -240,7 +284,11 @@ function createUserAccount(name, email, password, role) {
         role: role,
         createdAt: Date.now(),
         photo: null,
-        status: "approved"
+        status: "approved",
+        // Set on every admin-created account. Cleared the first time
+        // the user changes their own password from the Profile tab,
+        // so the dashboard knows whether to still nag them about it.
+        mustChangePassword: true
     });
 
     saveUsers(users);
@@ -305,7 +353,8 @@ function loginUser(email, password, remember) {
         name: user.name,
         email: user.email,
         role: user.role,
-        photo: user.photo || null
+        photo: user.photo || null,
+        mustChangePassword: user.mustChangePassword || false
     });
 
     // Remember me checked (default): session survives closing the
@@ -414,9 +463,16 @@ function updateAccount(userId, changes) {
     let oldEmail = user.email;
 
     if (emailChanged) user.email = newEmail;
-    if (passwordChanged) user.password = newPassword;
+    if (passwordChanged) {
+        user.password = newPassword;
+        user.mustChangePassword = false;
+    }
 
     saveUsers(users);
+
+    if (passwordChanged) {
+        updateSession(userId, { mustChangePassword: false });
+    }
 
     if (emailChanged) {
 

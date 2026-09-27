@@ -21,8 +21,8 @@
 
     function palette() {
         return isLight()
-            ? { a: "8,145,178", b: "124,58,237", lineMax: 0.16, dotNear: 0.6, dotFar: 0.32 }
-            : { a: "34,211,238", b: "139,92,246", lineMax: 0.3, dotNear: 0.85, dotFar: 0.5 };
+            ? { a: "232,164,0", b: "27,58,107", lineMax: 0.16, dotNear: 0.6, dotFar: 0.32 }
+            : { a: "245,179,1", b: "74,111,165", lineMax: 0.3, dotNear: 0.85, dotFar: 0.5 };
     }
 
     function makeLayer(count, speed, minR, maxR) {

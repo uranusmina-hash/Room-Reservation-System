@@ -31,18 +31,9 @@ let rooms = [
 
 let bookings = [];
 
-// Fixed, bookable time slots for every room.
-// Users can only reserve one of these blocks, so availability
-// is always clear-cut: a slot is either open, pending, or booked.
-const TIME_SLOTS = [
-    { id: "slot1", start: "08:00", end: "09:30" },
-    { id: "slot2", start: "10:00", end: "11:30" },
-    { id: "slot3", start: "13:00", end: "14:30" },
-    { id: "slot4", start: "15:00", end: "17:00" }
-];
-
-// Currently highlighted slot in the booking form (set by clicking a slot card)
-let selectedSlot = null;
+// The building's open hours. Free-choice start/end times in the
+// booking form must fall within this window.
+const OPERATING_HOURS = { start: "08:00", end: "17:00" };
 
 // Pagination state
 const ROOMS_PER_PAGE = 6;
@@ -109,7 +100,7 @@ function syncTodayDates() {
     }
 
     if (bookingDateCleared) {
-        renderSlotPicker();
+        checkTimeAvailability();
     }
 }
 
@@ -138,6 +129,59 @@ function alertMessage(message, type = "success") {
             if (slot) slot.innerHTML = html;
         }
     });
+}
+
+// Blocking modal shown to anyone still on an admin-set password (a
+// new account, or a password reset an admin fulfilled). Unlike a
+// dismissible banner, this has no close/cancel button and the
+// backdrop click is not wired to dismiss it — the only way out is to
+// submit a new password, which is what actually clears
+// mustChangePassword (in auth.js).
+function checkForcePasswordChange() {
+
+    let modal = document.getElementById("forcePasswordModal");
+
+    if (!modal || !currentUser || !currentUser.mustChangePassword) {
+        return;
+    }
+
+    modal.style.display = "flex";
+}
+
+function submitForcePasswordChange(event) {
+
+    event.preventDefault();
+
+    let next = document.getElementById("forcePwNew").value;
+    let confirmNext = document.getElementById("forcePwConfirm").value;
+    let slot = document.querySelector("#forcePasswordModal .modal-alert");
+
+    function fail(message) {
+        if (slot) slot.innerHTML = `<div class="alert error">${message}</div>`;
+    }
+
+    if (next.length < 6) {
+        fail("New password must be at least 6 characters.");
+        return;
+    }
+
+    if (next !== confirmNext) {
+        fail("New passwords do not match.");
+        return;
+    }
+
+    let result = forceChangePassword(currentUser.id, next);
+
+    if (!result.success) {
+        fail(result.message);
+        return;
+    }
+
+    currentUser.mustChangePassword = false;
+
+    document.getElementById("forcePasswordModal").style.display = "none";
+
+    alertMessage("Password updated. You're all set.", "success");
 }
 
 // Escapes text before it goes into innerHTML (names/emails are typed
@@ -545,6 +589,10 @@ function saveProfile() {
         renderStats();
     }
 
+    if (result.passwordChanged) {
+        currentUser.mustChangePassword = false;
+    }
+
     renderProfilePanel();
     closeProfileModal();
 
@@ -906,6 +954,12 @@ function renderResetRequests() {
                     >
                         Set New Password
                     </button>
+                    <button
+                        class="btn ghost"
+                        onclick="dismissResetRequest(${r.id})"
+                    >
+                        Dismiss
+                    </button>
                 </div>
             </div>
         `;
@@ -956,6 +1010,30 @@ function resolveResetRequest(id) {
     }
 }
 
+function dismissResetRequest(id) {
+
+    if (currentUser.role !== "admin") {
+        return;
+    }
+
+    if (!confirm("Dismiss this reset request? The user's password will not be changed.")) {
+        return;
+    }
+
+    let result = dismissPasswordResetRequest(id);
+
+    if (result.success) {
+
+        renderResetRequests();
+        renderNavBadges();
+
+        alertMessage("Reset request dismissed.", "success");
+
+    } else {
+        alertMessage(result.message, "error");
+    }
+}
+
 // Updates the stat tiles at the top of the dashboard.
 function renderStats() {
 
@@ -963,11 +1041,16 @@ function renderStats() {
 
     document.getElementById("statRooms").textContent = rooms.length;
 
+    let availNowEl = document.getElementById("statAvailableNow");
+    if (availNowEl) {
+        availNowEl.textContent = getAvailableRoomsNow();
+    }
+
     let openSlots = 0;
 
     if (date) {
         rooms.forEach(room => {
-            openSlots += getTimeline(room.id, date)
+            openSlots += getRoomSegments(room.id, date)
                 .filter(slot => slot.type === "available").length;
         });
     }
@@ -989,6 +1072,27 @@ function renderStats() {
         cancelledEl.textContent =
             scope.filter(b => b.status === "cancelled").length;
     }
+}
+
+// Counts rooms with no pending/approved booking covering right now.
+// Used for the "Rooms Available Now" tile on the overview.
+function getAvailableRoomsNow() {
+
+    let now = new Date();
+    let today = getTodayString();
+    let nowTime =
+        String(now.getHours()).padStart(2, "0") + ":" +
+        String(now.getMinutes()).padStart(2, "0");
+
+    return rooms.filter(room =>
+        !bookings.some(b =>
+            b.roomId == room.id &&
+            b.date === today &&
+            (b.status === "pending" || b.status === "approved") &&
+            nowTime >= b.start &&
+            nowTime < b.end
+        )
+    ).length;
 }
 
 function formatTime(time) {
@@ -1019,40 +1123,70 @@ function formatDate(dateStr) {
 // Returns the status ("available", "pending", or "approved") and
 // matching booking (if any) for a single fixed slot on a given
 // room/date, based on time overlap with existing reservations.
-function getSlotStatus(roomId, date, slot) {
-
-    let match = bookings.find(b =>
-        b.roomId == roomId &&
-        b.date == date &&
-        (b.status === "pending" || b.status === "approved") &&
-        slot.start < b.end &&
-        slot.end > b.start
-    );
-
-    if (!match) {
-        return { type: "available" };
-    }
-
-    return {
-        type: match.status,
-        purpose: match.purpose,
-        name: match.name
-    };
+function toMinutes(time) {
+    let [h, m] = time.split(":").map(Number);
+    return h * 60 + m;
 }
 
-function getTimeline(roomId, date) {
+function formatDuration(minutes) {
+    let h = Math.floor(minutes / 60);
+    let m = minutes % 60;
+    if (h && m) return `${h}h ${m}m`;
+    if (h) return `${h}h`;
+    return `${m}m`;
+}
 
-    return TIME_SLOTS.map(slot => {
-        let status = getSlotStatus(roomId, date, slot);
+// Splits a room's day into back-to-back segments covering the whole
+// operating window: an "available" segment for every open gap, and a
+// segment for each existing pending/approved booking. This reflects
+// real reservations (any start/end time) instead of 4 fixed blocks.
+function getRoomSegments(roomId, date) {
 
-        return {
-            start: slot.start,
-            end: slot.end,
-            type: status.type,
-            purpose: status.purpose,
-            name: status.name
-        };
+    let dayBookings = bookings
+        .filter(b =>
+            b.roomId == roomId &&
+            b.date == date &&
+            (b.status === "pending" || b.status === "approved")
+        )
+        .sort((a, b) => a.start.localeCompare(b.start));
+
+    let segments = [];
+    let cursor = OPERATING_HOURS.start;
+
+    dayBookings.forEach(b => {
+
+        if (b.end <= cursor) {
+            return; // fully covered by a previously-seen booking
+        }
+
+        let start = b.start > cursor ? b.start : cursor;
+
+        if (start > cursor) {
+            segments.push({ start: cursor, end: start, type: "available" });
+        }
+
+        segments.push({
+            start: start,
+            end: b.end,
+            type: b.status,
+            purpose: b.purpose,
+            name: b.name
+        });
+
+        cursor = b.end;
     });
+
+    if (cursor < OPERATING_HOURS.end) {
+        segments.push({ start: cursor, end: OPERATING_HOURS.end, type: "available" });
+    }
+
+    return segments;
+}
+
+// Just the open windows from getRoomSegments — used to suggest
+// alternative times once a requested reservation conflicts.
+function getFreeWindows(roomId, date) {
+    return getRoomSegments(roomId, date).filter(s => s.type === "available");
 }
 
 function displayRooms() {
@@ -1068,7 +1202,7 @@ function displayRooms() {
     // otherwise there is nothing to check availability against.
     if (filter === "available" && date) {
         visibleRooms = visibleRooms.filter(room =>
-            getTimeline(room.id, date)
+            getRoomSegments(room.id, date)
                 .some(slot => slot.type === "available")
         );
     }
@@ -1101,7 +1235,7 @@ function displayRooms() {
 
     pageRooms.forEach(room => {
 
-        let timeline = getTimeline(room.id, date);
+        let timeline = getRoomSegments(room.id, date);
 
         html += `
             <div class="room-card">
@@ -1124,15 +1258,19 @@ function displayRooms() {
 
         if (date) {
 
-            let openCount =
-                timeline.filter(s => s.type === "available").length;
+            let freeSegments = timeline.filter(s => s.type === "available");
+
+            let freeMinutes = freeSegments.reduce(
+                (sum, s) => sum + (toMinutes(s.end) - toMinutes(s.start)),
+                0
+            );
 
             let summaryClass =
-                openCount > 0 ? "available" : "full";
+                freeMinutes > 0 ? "available" : "full";
 
             let summaryLabel =
-                openCount > 0
-                    ? `🟢 ${openCount} slot${openCount === 1 ? "" : "s"} open`
+                freeMinutes > 0
+                    ? `🟢 ${formatDuration(freeMinutes)} open`
                     : `🔴 Fully booked`;
 
             html += `
@@ -1263,7 +1401,7 @@ function showRoomDetails(id) {
         document.getElementById("availabilityDate").value ||
         getTodayString();
 
-    let timeline = getTimeline(room.id, date);
+    let timeline = getRoomSegments(room.id, date);
 
     let scheduleHtml = timeline.map(slot => {
 
@@ -1330,7 +1468,7 @@ function reserveFromModal(roomId, date) {
     document.getElementById("room").value = roomId;
     document.getElementById("date").value = date;
 
-    renderSlotPicker();
+    checkTimeAvailability();
 }
 
 function hasConflict(roomId, date, start, end) {
@@ -1344,75 +1482,82 @@ function hasConflict(roomId, date, start, end) {
     );
 }
 
-// Renders the clickable slot cards in the booking form based on the
-// currently selected room + date. Booked/pending slots are shown but
-// disabled, so the user can immediately see which other times are free.
-function renderSlotPicker() {
+// Live feedback under the Start/End time inputs in the booking form.
+// Uses the same overlap check as hasConflict() — a chosen range can
+// start or end mid-way through an existing booking and still conflict,
+// it doesn't need to match any fixed block exactly.
+function checkTimeAvailability() {
 
     let roomId = document.getElementById("room").value;
     let date = document.getElementById("date").value;
-    let container = document.getElementById("slotPicker");
+    let start = document.getElementById("startTime").value;
+    let end = document.getElementById("endTime").value;
+    let msgEl = document.getElementById("timeAvailabilityMsg");
 
-    selectedSlot = null;
+    if (!msgEl) return;
 
-    if (!roomId || !date) {
-        container.innerHTML = `
-            <p class="note">
-                Choose a room and date to see available time slots.
-            </p>
-        `;
+    if (!roomId || !date || !start || !end) {
+        msgEl.className = "time-availability-msg";
+        msgEl.textContent = "Choose a room, date, start time, and end time.";
         return;
     }
 
-    let html = `<div class="slot-grid">`;
+    if (start >= end) {
+        msgEl.className = "time-availability-msg conflict";
+        msgEl.textContent = "❌ End time must be after start time.";
+        return;
+    }
 
-    TIME_SLOTS.forEach(slot => {
+    if (start < OPERATING_HOURS.start || end > OPERATING_HOURS.end) {
+        msgEl.className = "time-availability-msg conflict";
+        msgEl.textContent =
+            `❌ Rooms can only be booked between ${formatTime(OPERATING_HOURS.start)} and ${formatTime(OPERATING_HOURS.end)}.`;
+        return;
+    }
 
-        let status = getSlotStatus(roomId, date, slot);
-        let timeLabel =
-            `${formatTime(slot.start)} - ${formatTime(slot.end)}`;
+    if (hasConflict(roomId, date, start, end)) {
 
-        if (status.type === "available") {
-            html += `
-                <div
-                    class="slot-option available"
-                    onclick="pickSlot('${slot.id}')"
-                    data-slot="${slot.id}"
-                >
-                    <span class="slot-time">${timeLabel}</span>
-                    <span class="slot-status">🟢 Available</span>
-                </div>
-            `;
-        } else {
-            let label =
-                status.type === "pending" ? "🟡 Pending" : "🔴 Booked";
+        let freeWindows = getFreeWindows(roomId, date)
+            .filter(w => toMinutes(w.end) - toMinutes(w.start) > 0);
 
-            html += `
-                <div class="slot-option disabled ${status.type}">
-                    <span class="slot-time">${timeLabel}</span>
-                    <span class="slot-status">${label}</span>
-                    <span class="slot-purpose">${status.purpose}</span>
-                </div>
-            `;
+        msgEl.className = "time-availability-msg conflict";
+
+        if (freeWindows.length === 0) {
+            msgEl.textContent =
+                "❌ That time overlaps an existing reservation, and this room is fully booked for the rest of the day.";
+            return;
         }
-    });
 
-    html += `</div>`;
+        let chips = freeWindows.map(w => `
+            <button type="button" class="time-suggestion-chip"
+                onclick="applySuggestedTime('${w.start}', '${w.end}')">
+                ${formatTime(w.start)} - ${formatTime(w.end)}
+            </button>
+        `).join("");
 
-    container.innerHTML = html;
+        msgEl.innerHTML = `
+            ❌ That time overlaps an existing reservation for this room.
+            <div class="time-suggestions">
+                <span>This room is free:</span>
+                ${chips}
+            </div>
+        `;
+
+        return;
+    }
+
+    msgEl.className = "time-availability-msg ok";
+    msgEl.textContent =
+        `🟢 ${formatTime(start)} - ${formatTime(end)} is available.`;
 }
 
-function pickSlot(slotId) {
-
-    selectedSlot = TIME_SLOTS.find(s => s.id === slotId);
-
-    document
-        .querySelectorAll(".slot-option")
-        .forEach(el => el.classList.remove("selected"));
-
-    document
-        .querySelector(`.slot-option[data-slot="${slotId}"]`)
-        .classList.add("selected");
+// Fills the Start/End inputs with a suggested free window (from the
+// conflict message) and re-checks availability, so picking a
+// suggestion is a single click.
+function applySuggestedTime(start, end) {
+    document.getElementById("startTime").value = start;
+    document.getElementById("endTime").value = end;
+    checkTimeAvailability();
 }
 
 function bookRoom() {
@@ -1436,10 +1581,33 @@ function bookRoom() {
         return;
     }
 
-    if (!selectedSlot) {
+    let start = document.getElementById("startTime").value;
+    let end = document.getElementById("endTime").value;
+
+    if (!start || !end) {
 
         alertMessage(
-            "Please choose an available time slot.",
+            "Please choose a start and end time.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (start >= end) {
+
+        alertMessage(
+            "End time must be after start time.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (start < OPERATING_HOURS.start || end > OPERATING_HOURS.end) {
+
+        alertMessage(
+            `Rooms can only be booked between ${formatTime(OPERATING_HOURS.start)} and ${formatTime(OPERATING_HOURS.end)}.`,
             "error"
         );
 
@@ -1473,9 +1641,6 @@ function bookRoom() {
         }
     }
 
-    let start = selectedSlot.start;
-    let end = selectedSlot.end;
-
     let today = getTodayString();
 
     if (date < today) {
@@ -1495,7 +1660,7 @@ function bookRoom() {
             "error"
         );
 
-        renderSlotPicker();
+        checkTimeAvailability();
 
         return;
     }
@@ -1538,9 +1703,7 @@ function bookRoom() {
         .getElementById("bookingForm")
         .reset();
 
-    selectedSlot = null;
-
-    renderSlotPicker();
+    checkTimeAvailability();
 
     populateReserveForUsers();
 
@@ -2054,6 +2217,8 @@ document.addEventListener(
 
         displayUser();
 
+        checkForcePasswordChange();
+
         displayRooms();
 
         displayBookings();
@@ -2105,12 +2270,18 @@ document.addEventListener(
             });
 
         document.getElementById("room")
-            .addEventListener("change", renderSlotPicker);
+            .addEventListener("change", checkTimeAvailability);
 
         document.getElementById("date")
-            .addEventListener("change", renderSlotPicker);
+            .addEventListener("change", checkTimeAvailability);
 
-        renderSlotPicker();
+        document.getElementById("startTime")
+            .addEventListener("change", checkTimeAvailability);
+
+        document.getElementById("endTime")
+            .addEventListener("change", checkTimeAvailability);
+
+        checkTimeAvailability();
 
         document.getElementById(
             "bookingForm"

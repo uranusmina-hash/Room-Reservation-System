@@ -12,6 +12,7 @@
 </head>
 <body>
 
+    <div class="page-cover" aria-hidden="true"></div>
     <canvas class="bg-field" aria-hidden="true"></canvas>
 
     <div class="app-shell">
@@ -19,7 +20,7 @@
         <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
             <a class="sidebar-brand" href="index.html">
-                <span class="header-logo">📚</span>
+                <span class="header-logo"><img src="assets/ccis-logo.png" alt="CCIS logo"></span>
                 <div>
                     <h1>Room Reservation</h1>
                     <small>School Management System</small>
@@ -82,7 +83,7 @@
                     <span></span><span></span><span></span>
                 </button>
                 <a class="topbar-brand" href="index.html">
-                    <span class="header-logo">📚</span> Room Reservation
+                    <span class="header-logo"><img src="assets/ccis-logo.png" alt="CCIS logo"></span> Room Reservation
                 </a>
             </div>
 
@@ -91,15 +92,22 @@
             <!-- OVERVIEW -->
             <section class="panel active" id="panel-overview">
                 <div class="bento">
-                    <div class="box tile-stats stat-cyan">
+                    <div class="box tile-stats stat-slate">
                         <div class="stat-icon">🏫</div>
                         <div class="stat-info">
                             <span class="stat-value" id="statRooms">0</span>
                             <span class="stat-label">Total Rooms</span>
                         </div>
                     </div>
-                    <div class="box tile-stats stat-green">
+                    <div class="box tile-stats stat-cyan">
                         <div class="stat-icon">🟢</div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="statAvailableNow">0</span>
+                            <span class="stat-label">Rooms Available Now</span>
+                        </div>
+                    </div>
+                    <div class="box tile-stats stat-green">
+                        <div class="stat-icon">📆</div>
                         <div class="stat-info">
                             <span class="stat-value" id="statAvailable">0</span>
                             <span class="stat-label">Open Slots Today</span>
@@ -155,9 +163,9 @@
             <div class="box">
                 <h2>🏫 Rooms</h2>
                 <p class="note">
-                    Select a date to see room availability. Rooms are booked in
-                    four fixed time blocks: 8:00–9:30 AM, 10:00–11:30 AM,
-                    1:00–2:30 PM, and 3:00–5:00 PM.
+                    Select a date to see room availability. The timeline below
+                    shows four reference blocks, but you can book any start
+                    and end time within 8:00 AM – 5:00 PM when you reserve.
                 </p>
 
                 <label>Check Availability Date</label>
@@ -201,12 +209,19 @@
                     <label>Date</label>
                     <input id="date" type="date" required>
 
-                    <label>Time Slot</label>
-                    <div class="slot-picker" id="slotPicker">
-                        <p class="note">
-                            Choose a room and date to see available time slots.
-                        </p>
+                    <label>Time</label>
+                    <div class="time-range-row">
+                        <div>
+                            <label class="time-sublabel">Start</label>
+                            <input id="startTime" type="time" min="08:00" max="17:00" step="900" required>
+                        </div>
+                        <div>
+                            <label class="time-sublabel">End</label>
+                            <input id="endTime" type="time" min="08:00" max="17:00" step="900" required>
+                        </div>
                     </div>
+                    <p class="note">Rooms are open 8:00 AM – 5:00 PM. Pick any start and end time within that window.</p>
+                    <div id="timeAvailabilityMsg"></div>
 
                     <label>Purpose</label>
                     <input id="purpose" type="text" placeholder="Example: Math Class" required>
@@ -384,6 +399,41 @@
                 <div class="form-actions">
                     <button class="btn success" type="submit">💾 Save Changes</button>
                     <button class="btn" type="button" onclick="closeProfileModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORCE PASSWORD CHANGE MODAL — no close button, backdrop click
+         does nothing. The only way past it is to submit a new
+         password (see submitForcePasswordChange in script.js). Shown
+         whenever currentUser.mustChangePassword is true. -->
+    <div class="modal-overlay" id="forcePasswordModal">
+        <div class="modal-card">
+            <div class="modal-alert"></div>
+
+            <h2>🔑 Set Your Own Password</h2>
+            <p class="note">
+                Your account is still using a temporary password set
+                by an admin. For security, please choose your own
+                password before continuing.
+            </p>
+
+            <form id="forcePasswordForm" autocomplete="off" onsubmit="submitForcePasswordChange(event)">
+                <label>New Password</label>
+                <div class="password-field">
+                    <input id="forcePwNew" type="password" autocomplete="new-password" placeholder="At least 6 characters" required>
+                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'forcePwNew')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+
+                <label>Confirm New Password</label>
+                <div class="password-field">
+                    <input id="forcePwConfirm" type="password" autocomplete="new-password" placeholder="Re-enter new password" required>
+                    <button class="password-toggle" type="button" aria-label="Show password" onclick="togglePasswordVisibility(this, 'forcePwConfirm')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn success" type="submit">💾 Save and Continue</button>
                 </div>
             </form>
         </div>
